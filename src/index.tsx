@@ -83,7 +83,7 @@ export class Storage {
   readonly _data: Map<string, StateData>;
   private readonly _listeners: Map<string, Set<Listener>> = new Map();
 
-  constructor(data: Map<string, StateData> | Storage | null) {
+  constructor(data?: Map<string, StateData> | Storage | null) {
     this._data = data instanceof Map ? data : (data instanceof Storage ? new Map(data._data) : new Map());
   }
 
@@ -221,7 +221,7 @@ export class Storage {
  * A provider for the application-wide state-storage.
  */
 export function Provider({ storage, children }: ProviderProps): JSX.Element {
-  return createElement(_Context.Provider, { value: storage }, children);
+  return <_Context.Provider value={storage}>{children}</_Context.Provider>;
 }
 
 /**
@@ -235,9 +235,7 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
     throw new Error("<Weird.Resume/> must be inside a <Weird.Provider/>");
   }
 
-  const iter = stateDataIteratorNext(storage);
-
-  return createElement(ResumeInner, { prefix, iter, createMap: true });
+  return <ResumeInner prefix={prefix} iter={stateDataIteratorNext(storage)} createMap />;
 }
 
 /**
@@ -346,12 +344,10 @@ function ResumeInner({
   const items = iter.items;
 
   // Gradually expand as we get finished items
-  return createElement(
-    Fragment,
-    {},
-    createElement(ResumeScript, { prefix, items, createMap }),
-    createElement(Suspense, {}, createElement(ResumeNext, { prefix, iter })),
-  );
+  return <>
+    <ResumeScript prefix={prefix} items={items} createMap={createMap}/>
+    <Suspense><ResumeNext prefix={prefix} iter={iter}/></Suspense>
+    </>;
 }
 
 function ResumeNext({ prefix, iter }: ResumeNextProps): JSX.Element | null {
@@ -361,7 +357,7 @@ function ResumeNext({ prefix, iter }: ResumeNextProps): JSX.Element | null {
     return null;
   }
 
-  return createElement(ResumeInner, { prefix, iter: next });
+  return <ResumeInner prefix={prefix} iter={next}/>
 }
 
 function ResumeScript({
@@ -383,12 +379,7 @@ function ResumeScript({
     );
   }
 
-  return createElement("script", {
-    defer: true,
-    dangerouslySetInnerHTML: {
-      __html: parts.join(""),
-    },
-  });
+  return <script defer dangerouslySetInnerHTML={{ __html: parts.join("") }} />
 }
 
 function isThenable(value: any): value is Promise<any> {

@@ -37,12 +37,14 @@ describe("useWeird()", () => {
       return <p>String(n)</p>;
     }
 
-    expect(
+    const { baseElement } =
+
       render(
         <Provider storage={storage}>
           <C />
         </Provider>
-      )
-    ).toEqual("");
+      );
+
+    expect(baseElement.innerHtml).toEqual("");
   });
 });

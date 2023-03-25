@@ -6,6 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
+    "format": "prettier -w src",
+    "format:check": "prettier -c src",
     "test": "jest",
     "test:watch:": "jest --watch"
   },

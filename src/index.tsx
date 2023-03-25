@@ -40,7 +40,7 @@ export type UpdateCallback<T> = (update: Update<T>) => void;
 export type Listener = (
   id: string,
   kind: "data" | "error" | "drop",
-  value: any,
+  value: any
 ) => any;
 /**
  * A listener for state-data updates.
@@ -84,7 +84,12 @@ export class Storage {
   private readonly _listeners: Map<string, Set<Listener>> = new Map();
 
   constructor(data?: Map<string, StateData> | Storage | null) {
-    this._data = data instanceof Map ? data : (data instanceof Storage ? new Map(data._data) : new Map());
+    this._data =
+      data instanceof Map
+        ? data
+        : data instanceof Storage
+        ? new Map(data._data)
+        : new Map();
   }
 
   /**
@@ -124,7 +129,7 @@ export class Storage {
     if (!this._data.has(id)) {
       return this._resolve(
         id,
-        typeof init === "function" ? (init as InitFn<T>)() : init,
+        typeof init === "function" ? (init as InitFn<T>)() : init
       );
     }
 
@@ -145,7 +150,7 @@ export class Storage {
 
     if (!data || data.kind !== "data") {
       throw new Error(
-        `Attempted to update state '${id}' which is not initialized.`,
+        `Attempted to update state '${id}' which is not initialized.`
       );
     }
 
@@ -153,7 +158,7 @@ export class Storage {
       id,
       typeof update === "function"
         ? (update as UpdateFn<T>)(data.value)
-        : update,
+        : update
     );
   }
 
@@ -170,7 +175,7 @@ export class Storage {
 
     if (data && data.kind === "pending") {
       throw new Error(
-        `Attempted to resolve a state-update in '${id}' while an existing state-update is active.`,
+        `Attempted to resolve a state-update in '${id}' while an existing state-update is active.`
       );
     }
 
@@ -181,7 +186,7 @@ export class Storage {
 
     const p = value.then(
       (d) => this._setData(id, d),
-      (err) => this._setError(id, err),
+      (err) => this._setError(id, err)
     );
 
     this._data.set(id, { kind: "pending", value: p });
@@ -205,7 +210,7 @@ export class Storage {
   _triggerListeners(
     id: string,
     kind: "data" | "error" | "drop",
-    value: any,
+    value: any
   ): void {
     for (const f of this._listeners.get(id) ?? []) {
       f(id, kind, value);
@@ -235,7 +240,13 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
     throw new Error("<Weird.Resume/> must be inside a <Weird.Provider/>");
   }
 
-  return <ResumeInner prefix={prefix} iter={stateDataIteratorNext(storage)} createMap />;
+  return (
+    <ResumeInner
+      prefix={prefix}
+      iter={stateDataIteratorNext(storage)}
+      createMap
+    />
+  );
 }
 
 /**
@@ -298,7 +309,7 @@ interface ResumeScriptProps {
 
 function stateDataIteratorNext(
   storage: Storage,
-  emitted?: Set<string> | null,
+  emitted?: Set<string> | null
 ): StateDataIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   const items = new Map();
@@ -344,10 +355,14 @@ function ResumeInner({
   const items = iter.items;
 
   // Gradually expand as we get finished items
-  return <>
-    <ResumeScript prefix={prefix} items={items} createMap={createMap}/>
-    <Suspense><ResumeNext prefix={prefix} iter={iter}/></Suspense>
-    </>;
+  return (
+    <>
+      <ResumeScript prefix={prefix} items={items} createMap={createMap} />
+      <Suspense>
+        <ResumeNext prefix={prefix} iter={iter} />
+      </Suspense>
+    </>
+  );
 }
 
 function ResumeNext({ prefix, iter }: ResumeNextProps): JSX.Element | null {
@@ -357,7 +372,7 @@ function ResumeNext({ prefix, iter }: ResumeNextProps): JSX.Element | null {
     return null;
   }
 
-  return <ResumeInner prefix={prefix} iter={next}/>
+  return <ResumeInner prefix={prefix} iter={next} />;
 }
 
 function ResumeScript({
@@ -369,17 +384,17 @@ function ResumeScript({
 
   if (createMap) {
     parts.push(
-      `${prefix}=new Map();${prefix}.unsuspend=function(k,v){this.set(k,v)};`,
+      `${prefix}=new Map();${prefix}.unsuspend=function(k,v){this.set(k,v)};`
     );
   }
 
   for (const [id, value] of items) {
     parts.push(
-      `${prefix}.unsuspend(${JSON.stringify(id)},${JSON.stringify(value)});`,
+      `${prefix}.unsuspend(${JSON.stringify(id)},${JSON.stringify(value)});`
     );
   }
 
-  return <script defer dangerouslySetInnerHTML={{ __html: parts.join("") }} />
+  return <script defer dangerouslySetInnerHTML={{ __html: parts.join("") }} />;
 }
 
 function isThenable(value: any): value is Promise<any> {

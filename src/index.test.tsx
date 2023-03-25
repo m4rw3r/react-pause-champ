@@ -1,8 +1,4 @@
-import {
-  Storage,
-  Provider,
-  useWeird
-} from "./index";
+import { Storage, Provider, useWeird } from "./index";
 import { createElement } from "react";
 import {
   render,
@@ -22,7 +18,9 @@ describe("useWeird()", () => {
       return null;
     }
 
-    expect(() => render(<C/>)).toThrow(new Error("useWeird() must be inside a <Weird.Provider/>"));
+    expect(() => render(<C />)).toThrow(
+      new Error("useWeird() must be inside a <Weird.Provider/>")
+    );
 
     console.error = originalError;
   });
@@ -39,6 +37,12 @@ describe("useWeird()", () => {
       return <p>String(n)</p>;
     }
 
-    expect(render(<Provider storage={storage}><C/></Provider>)).toEqual("")
+    expect(
+      render(
+        <Provider storage={storage}>
+          <C />
+        </Provider>
+      )
+    ).toEqual("");
   });
 });

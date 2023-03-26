@@ -4,9 +4,12 @@
   "description": "Isomorphic async-aware state using React Suspense",
   "type": "module",
   "main": "dist/index.js",
+  "module": "dist/index.esm.js",
   "sideEffects": false,
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "npm run build:d.ts && npm run build:js",
+    "build:d.ts": "tsc --project tsconfig.build.json",
+    "build:js": "node esbuild.js",
     "format": "prettier -w src",
     "format:check": "prettier -c src",
     "test": "jest",

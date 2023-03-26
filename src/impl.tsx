@@ -225,6 +225,14 @@ export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
   useEffect(() => {
     const unlisten = storage.registerListener((_id, _kind, data) => {
       // TODO: Trigger also if we trigger async
+      // TODO: How do we manage this?
+      // TODO: How do we manage changing the `id`? A new id will cause a weird setup, eg:
+      // 1. ('a', 'data1') -> 'data1'
+      // 2. ('b', 'data2') -> 'data2'
+      // 3. update('data1') -> no change
+      //
+      // The issue is that we have to also try to avoid-re-renders, maybe add re-render logic here?
+
       //if (kind === "data") {
       setTrigger(data);
       //}

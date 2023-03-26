@@ -55,6 +55,7 @@ interface RenderHookResult<P extends any[], T> {
   unmount: () => void;
 }
 
+// TODO: Replace Jest with something better (which doesn't dump the whole internet in error messages to the console on passing tests)
 function renderHook<P extends any[], T>(
   renderCallback: (...args: P) => T,
   options: { wrapper?: ComponentType } = {},
@@ -63,8 +64,6 @@ function renderHook<P extends any[], T>(
   const { wrapper: Wrapper = Fragment } = options;
   let theError: any = { current: undefined, all: [] };
   let result: any = { current: undefined, all: [] };
-  const originalError = console.error;
-  console.error = jest.fn();
 
   class ErrorBoundary extends Component<{ children: ReactNode }> {
     state = { hasError: false };
@@ -110,7 +109,6 @@ function renderHook<P extends any[], T>(
   );
 
   function rerender(...args: P) {
-    console.error = jest.fn();
     baseRerender(
       <Wrapper>
         <ErrorBoundary>
@@ -118,9 +116,7 @@ function renderHook<P extends any[], T>(
         </ErrorBoundary>
       </Wrapper>
     );
-    console.error = originalError;
   }
-  console.error = originalError;
 
   return { result, rerender, error: theError, unmount };
 }

@@ -133,22 +133,15 @@ export class Storage {
   /**
    * Initialize a state if not already initialized.
    */
-  initState<T>(id: string, init: Init<T>): T {
-    const { kind, value } =
+  initState<T>(id: string, init: Init<T>): StateData<T> {
+    return (
       this._data.get(id) ||
       resolveState(
         this,
         id,
         typeof init === "function" ? (init as InitFn<T>)() : init
-      );
-
-    // console.log(kind, value);
-
-    if (kind !== "value") {
-      throw value;
-    }
-
-    return value;
+      )
+    );
   }
 
   /**
@@ -220,13 +213,15 @@ export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
     throw new Error("useWeird() must be inside a <Weird.Provider/>");
   }
 
-  const data = storage.initState(id, init);
+  const { kind, value } = storage.initState(id, init);
   // useState here to trigger re-render
-  const [_, setTrigger] = useState(data);
+  const [_, setTrigger] = useState(value);
 
   // TODO: Skip this call on server somehow
+  // TODO: Fix issue caused by re-rendering in React.StrictMode which causes it to remove the state
   useEffect(() => {
-    const unlisten = storage.registerListener((_id, _kind, data) => {
+    const unlisten = storage.registerListener((_id, _kind, value) => {
+      // console.log("useWeird().listener", _kind, value);
       // TODO: Trigger also if we trigger async
       // TODO: How do we manage this?
       // TODO: How do we manage changing the `id`? A new id will cause a weird setup, eg:
@@ -236,9 +231,7 @@ export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
       //
       // The issue is that we have to also try to avoid-re-renders, maybe add re-render logic here?
 
-      //if (kind === "data") {
-      setTrigger(data);
-      //}
+      setTrigger(value);
     }, id);
 
     return () => {
@@ -248,5 +241,12 @@ export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
     };
   }, [storage, id]);
 
-  return [data, (update: Update<T>) => storage.updateState(id, update)];
+  // Throw at end once we have initialized all hooks
+  if (kind !== "value") {
+    // Error or Suspense-Promise to throw
+    throw value;
+  }
+
+  // TODO: useCallback()
+  return [value, (update: Update<T>) => storage.updateState(id, update)];
 }

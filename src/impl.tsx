@@ -1,4 +1,10 @@
-import { createElement, useContext, useEffect, useState } from "react";
+import {
+  ReactNode,
+  createElement,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   Context,
   ResumeInner,
@@ -61,7 +67,7 @@ export interface ProviderProps {
   /**
    * Nested JSX-elements.
    */
-  children: JSX.Element[] | JSX.Element;
+  children?: ReactNode;
 }
 export interface ResumeProps {
   /**

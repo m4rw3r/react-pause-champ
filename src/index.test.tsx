@@ -25,44 +25,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state = { error: null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  componentDidCatch(error: Error, _info: ErrorInfo) {
-    console.log("Catched", error);
-    lastError = error;
-  }
-
-  render() {
-    if (this.state.error) {
-      return <p className="error">{String(this.state.error)}</p>;
-    }
-
-    return this.props.children;
-  }
-}
-
-let lastError: Error | null = null;
 let storage = new Storage();
 
 function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
-  return (
-    <ErrorBoundary>
-      <WrapperNoCatch>{children}</WrapperNoCatch>
-    </ErrorBoundary>
-  );
-}
-
-function WrapperNoCatch({ children }: { children?: ReactNode }): JSX.Element {
-  return (
-    <Provider storage={storage}>
-      <Suspense fallback={null}>{children}</Suspense>
-    </Provider>
-  );
+  return <Provider storage={storage}>{children}</Provider>;
+  // <Suspense fallback={null}>{children}</Suspense>
 }
 
 function expectThrow(fn: Function, thrown: any) {
@@ -76,33 +43,42 @@ function expectThrow(fn: Function, thrown: any) {
 }
 
 interface Ref<T> {
-  current: T | null;
+  // We skip undefined here, even though it can be, since it is annoying for test
+  current: T;
   all: Array<T>;
 }
 
 interface RenderHookResult<P extends any[], T> {
-  result: Ref<T | null>;
-  error: Ref<Error | null>;
+  result: Ref<T>;
+  error: Ref<Error>;
   rerender: (...args: P) => void;
   unmount: () => void;
 }
 
 function renderHook<P extends any[], T>(
   renderCallback: (...args: P) => T,
-  options: { args?: P; wrapper?: ComponentType } = {}
+  options: { wrapper?: ComponentType } = {},
+  ...args: P
 ): RenderHookResult<P, T> {
-  const { args = [], wrapper: Wrapper = Fragment } = options;
-  let theError: Ref<Error> = { current: null, all: [] };
-  let result: Ref<T> = { current: null, all: [] };
+  const { wrapper: Wrapper = Fragment } = options;
+  let theError: any = { current: undefined, all: [] };
+  let result: any = { current: undefined, all: [] };
+  const originalError = console.error;
+  console.error = jest.fn();
 
-  class C extends Component<{ children: ReactNode }> {
+  class ErrorBoundary extends Component<{ children: ReactNode }> {
+    state = { hasError: false };
+    static getDerivedStateFromError() {
+      return { hasError: true };
+    }
     componentDidCatch(error: Error, _info: ErrorInfo) {
       theError.current = error;
       theError.all.push(error);
     }
 
     render() {
-      if (theError) {
+      if (this.state.hasError) {
+        // bricked
         return null;
       }
 
@@ -134,6 +110,7 @@ function renderHook<P extends any[], T>(
   );
 
   function rerender(...args: P) {
+    console.error = jest.fn();
     baseRerender(
       <Wrapper>
         <ErrorBoundary>
@@ -141,36 +118,38 @@ function renderHook<P extends any[], T>(
         </ErrorBoundary>
       </Wrapper>
     );
+    console.error = originalError;
   }
+  console.error = originalError;
 
   return { result, rerender, error: theError, unmount };
 }
 
 beforeEach(() => {
-  lastError = null;
   storage = new Storage();
 });
 
 describe("useWeird()", () => {
   it("throws when no <Provider/> wraps it", () => {
-    expectThrow(
-      () => renderHook(() => useWeird("test", 123)),
+    const { error } = renderHook(useWeird, {}, "test", 123);
+
+    expect(error.current).toEqual(
       new Error("useWeird() must be inside a <Weird.Provider/>")
     );
   });
 
   it("throws errors", () => {
-    expectThrow(
-      () =>
-        renderHook(
-          () =>
-            useWeird("throw-test", () => {
-              throw new Error("throws error test");
-            }),
-          { wrapper: WrapperNoCatch }
-        ),
-      new Error("throws error test")
+    const rejection = new Error("throws error test");
+    const { error } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "throw-test",
+      () => {
+        throw rejection;
+      }
     );
+
+    expect(error.current).toBe(rejection);
   });
 
   it("throws async errors", async () => {
@@ -179,48 +158,43 @@ describe("useWeird()", () => {
     const waiting = new Promise((_, reject) => {
       rejectWaiting = reject;
     });
-    const error = new Error("throws async error test");
+    const rejection = new Error("throws async error test");
     const C = () => {
       useWeird("async-throw-test", () => waiting);
       return null;
     };
 
-    const { result } = renderHook(
-      () => useWeird("async-throw-test", () => waiting),
-      { wrapper: Wrapper }
+    const { result, error } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "async-throw-test",
+      () => waiting
     );
 
-    /*
-    const { container } = render(
-      <Wrapper>
-        <C />
-      </Wrapper>
-    );
-	*/
+    expect(result.current).toBeUndefined();
 
-    expect(result.current).toBeNull();
+    // TODO: Suppress error from this
+    await act(() => rejectWaiting(rejection));
 
-    await act(() => rejectWaiting(error));
-
-    console.log("We are checking");
-
-    expect(result.current).toBeNull();
-    expect(lastError).toBe(error);
+    expect(result.current).toBeUndefined();
+    expect(error.current).toBe(rejection);
   });
 
   it("returns the init argument as the first element", async () => {
     const testObject1 = { test: "test-object-1" };
     const testObject2 = { test: "test-object-2" };
     const { result, rerender } = renderHook(
-      ({ value }) => useWeird("test", value),
-      { initialProps: { value: testObject1 }, wrapper: Wrapper }
+      useWeird,
+      { wrapper: Wrapper },
+      "test",
+      testObject1
     );
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject1);
-    await rerender({ value: testObject2 });
+    await rerender("test", testObject2);
     expect(result.current[0]).toBe(testObject1);
-    await rerender({ value: testObject2 });
+    await rerender("test", testObject2);
     expect(result.current[0]).toBe(testObject1);
 
     expect(getData(storage).get("test")).toEqual({
@@ -233,11 +207,10 @@ describe("useWeird()", () => {
     const testObject = { test: "test-object-1" };
     const testObject2 = { test: "test-object-2" };
     const { result, rerender } = renderHook(
-      ({ id, value }) => useWeird(id, value),
-      {
-        initialProps: { id: "test", value: testObject },
-        wrapper: Wrapper,
-      }
+      useWeird,
+      { wrapper: Wrapper },
+      "test",
+      testObject
     );
 
     expect(result.current).toHaveLength(2);
@@ -248,7 +221,7 @@ describe("useWeird()", () => {
     });
     expect(getData(storage).get("test2")).toEqual(undefined);
 
-    await rerender({ id: "test2", value: testObject2 });
+    await rerender("test2", testObject2);
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
@@ -258,7 +231,7 @@ describe("useWeird()", () => {
     });
     expect(getData(storage).get("test")).toEqual(undefined);
 
-    await rerender({ id: "test", value: testObject2 });
+    await rerender("test", testObject2);
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
@@ -271,11 +244,10 @@ describe("useWeird()", () => {
 
   it("triggers re-render with updated values", async () => {
     const { result, rerender } = renderHook(
-      ({ id, value }) => useWeird(id, value),
-      {
-        initialProps: { id: "test", value: 1 },
-        wrapper: Wrapper,
-      }
+      useWeird,
+      { wrapper: Wrapper },
+      "test",
+      1
     );
 
     expect(result.current).toHaveLength(2);

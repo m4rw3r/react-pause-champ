@@ -174,7 +174,7 @@ export default {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    "^.+\\.(t|j)sx?$": "ts-jest",
+    "^.+\\.(t|j)sx?$": ["ts-jest", { isolatedModules: true }]
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation

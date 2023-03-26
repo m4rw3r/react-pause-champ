@@ -138,6 +138,7 @@ export function triggerListeners(
   kind: StateKind | "drop",
   value: any
 ): void {
+  //console.log("triggerListeners", kind, value);
   for (const f of storage._listeners.get(id) || []) {
     f(id, kind, value);
   }

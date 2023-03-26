@@ -10,7 +10,7 @@
     "build": "npm run build:d.ts && npm run build:js",
     "build:d.ts": "tsc --project tsconfig.build.json",
     "build:js": "node esbuild.js",
-    "format": "prettier -w src",
+    "format": "prettier -w src *.ts *.js",
     "format:check": "prettier -c src",
     "test": "jest",
     "test:watch:": "jest --watch"

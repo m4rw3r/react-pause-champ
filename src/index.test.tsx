@@ -1,14 +1,14 @@
 import { Storage, Provider, useWeird } from "./index";
 import { getData } from "./internal";
 import {
-  Component,
+  //Component,
   ComponentType,
   ReactNode,
-  ErrorInfo,
+  //ErrorInfo,
   Fragment,
   Suspense,
   createElement,
-  useEffect,
+  //useEffect,
 } from "react";
 import {
   render,
@@ -16,20 +16,17 @@ import {
   act,
   //fireEvent,
   //waitForElement
+  //waitFor,
 } from "@testing-library/react";
-
-interface ErrorBoundaryProps {
-  children: JSX.Element[] | JSX.Element | null;
-}
-interface ErrorBoundaryState {
-  error: Error | null;
-}
 
 let storage = new Storage();
 
 function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
-  return <Provider storage={storage}>{children}</Provider>;
-  // <Suspense fallback={null}>{children}</Suspense>
+  return (
+    <Suspense fallback={null}>
+      <Provider storage={storage}>{children}</Provider>
+    </Suspense>
+  );
 }
 
 interface Ref<T> {
@@ -39,11 +36,18 @@ interface Ref<T> {
 }
 
 interface RenderHookResult<P extends any[], T> {
+  container: HTMLElement;
   result: Ref<T>;
   error: Ref<Error>;
   rerender: (...args: P) => void;
   unmount: () => void;
 }
+
+// const TEST_COMPONENT_HTML = `<p>TestComponent</p>`;
+const TEST_COMPONENT_HTML = /^<p( style="")?>TestComponent<\/p>$/;
+const TEST_COMPONENT_ERROR_HTML = /^<p( style="")?>TestComponent.Error<\/p>$/;
+const SUSPENDED_TEST_COMPONENT_HTML =
+  /^<p style="display: none;">TestComponent<\/p>/;
 
 function renderHook<P extends any[], T>(
   renderCallback: (...args: P) => T,
@@ -58,24 +62,28 @@ function renderHook<P extends any[], T>(
     // We have to catch errors here, otherwise React wants to render our component
     // twice to make sure the error is "permanent", and react will output a ton of
     // duplicate errors on console.error, along with "helpful" dev-information
-    try {
-      const pendingResult = renderCallback(...args);
 
-      useEffect(() => {
-        result.current = pendingResult;
-        result.all.push(pendingResult);
-      });
-    } catch (e) {
-      if (e instanceof Error) {
-        error.current = e;
-        error.all.push(e);
-      } else {
-        // Suspense-support, throwing thenables, rethrow to let react handle that
-        throw e;
-      }
+    let pendingResult: T | undefined = undefined;
+    let pendingError: any = undefined;
+
+    try {
+      pendingResult = renderCallback(...args);
+    } catch (e: any) {
+      pendingError = e;
     }
 
-    return null;
+    result.current = pendingResult;
+    error.current = pendingError;
+
+    result.all.push(pendingResult);
+    error.all.push(pendingError);
+
+    if (pendingError && !(pendingError instanceof Error)) {
+      // Suspense-support, throwing thenables, rethrow to let react handle that
+      throw pendingError;
+    }
+
+    return pendingError ? <p>TestComponent.Error</p> : <p>TestComponent</p>;
   }
 
   const {
@@ -96,7 +104,7 @@ function renderHook<P extends any[], T>(
     );
   }
 
-  return { result, rerender, error, unmount };
+  return { container, result, rerender, error, unmount };
 }
 
 beforeEach(() => {
@@ -210,17 +218,12 @@ describe("useWeird()", () => {
     expect(getData(storage).get("test2")).toEqual(undefined);
   });
 
-  it("only calls init callback once", () => {});
+  it("calls init callback exactly once", () => {});
 });
 
 describe("useWeird().update", () => {
   it("triggers re-render with updated values", async () => {
-    const { result, rerender } = renderHook(
-      useWeird,
-      { wrapper: Wrapper },
-      "test",
-      1
-    );
+    const { result } = renderHook(useWeird, { wrapper: Wrapper }, "test", 1);
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(1);
@@ -233,14 +236,14 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(2);
   });
 
-  it.only("throws async errors", async () => {
+  it("throws async errors", async () => {
     // This does not throw when expected since we need to have useEffect
     let rejectWaiting: (error: Error) => void;
     const waiting: Promise<string> = new Promise((_, reject) => {
       rejectWaiting = reject;
     });
     const rejection = new Error("throws async error test");
-    const { result, error } = renderHook(
+    const { result, error, container } = renderHook(
       useWeird,
       { wrapper: Wrapper },
       "update-async-throw-test",
@@ -250,22 +253,25 @@ describe("useWeird().update", () => {
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe("init");
     expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
 
     const [, update] = result.current;
 
     await act(() => update(() => waiting));
 
-    console.log(result);
+    expect(result.current).toBeUndefined();
+    expect(result.all).toHaveLength(2);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
 
-    expect(result.current).toHaveLength(2);
-    expect(result.current[0]).toBe("init");
-    expect(result.current[1]).toBeInstanceOf(Function);
+    // We have to wait for the promise to complete
+    await act(async () => {
+      rejectWaiting(rejection);
 
-    await act(() => rejectWaiting(rejection));
-
-    console.log(result);
+      await waiting.catch(() => {});
+    });
 
     expect(result.current).toBeUndefined();
     expect(error.current).toBe(rejection);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_ERROR_HTML);
   });
 });

@@ -9,6 +9,7 @@ import {
   Context,
   ResumeInner,
   StateData,
+  StateKind,
   stateDataIteratorNext,
   resolveState,
   triggerListeners,
@@ -49,7 +50,7 @@ export type UpdateCallback<T> = (update: Update<T>) => void;
  */
 export type Listener = (
   id: string,
-  kind: "data" | "error" | "drop",
+  kind: "value" | "pending" | "error" | "drop",
   value: any
 ) => any;
 /**
@@ -84,7 +85,7 @@ export class Storage {
   /**
    * @internal
    */
-  readonly _data: Map<string, StateData>;
+  readonly _data: Map<string, StateData<any>>;
   /**
    * @internal
    */
@@ -102,7 +103,7 @@ export class Storage {
   /**
    * Attempt to add data for a state-to-be-unsuspended.
    */
-  unsuspend(id: string, kind: "data" | "error", value: any): void {
+  unsuspend(id: string, kind: StateKind, value: any): void {
     if (this._data.has(id)) {
       throw new Error(`State '${id}' has already been initialized.`);
     }
@@ -133,17 +134,17 @@ export class Storage {
    * Initialize a state if not already initialized.
    */
   initState<T>(id: string, init: Init<T>): T {
-    if (!this._data.has(id)) {
-      return resolveState(
+    const { kind, value } =
+      this._data.get(id) ||
+      resolveState(
         this,
         id,
         typeof init === "function" ? (init as InitFn<T>)() : init
       );
-    }
 
-    const { kind, value } = this._data.get(id)!;
+    // console.log(kind, value);
 
-    if (kind !== "data") {
+    if (kind !== "value") {
       throw value;
     }
 
@@ -156,12 +157,14 @@ export class Storage {
   updateState<T>(id: string, update: Update<T>): void {
     const data = this._data.get(id);
 
-    if (!data || data.kind !== "data") {
+    if (!data || data.kind !== "value") {
       throw new Error(
         `Attempted to update state '${id}' which is not initialized.`
       );
     }
 
+    // Just ignore the values, we trigger a re-render through listeners which
+    // will then throw for Suspense/ErrorBoundary:
     resolveState(
       this,
       id,

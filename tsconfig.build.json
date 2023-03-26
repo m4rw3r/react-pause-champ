@@ -9,9 +9,11 @@
   "compilerOptions": {
     "rootDir": "src",
     "module": "esnext",
-    "target": "es6",
+    "target": "es2021",
     "outDir": "dist",
     "stripInternal": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+
+    "isolatedModules": false,
   }
 }

@@ -1,28 +1,31 @@
 import { Fragment, Suspense, createContext, createElement } from "react";
 import { Storage } from "./impl";
 
+// TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
+export type StateKind = "value" | "pending" | "error";
 /**
  * @internal
  */
-export interface StateData {
-  kind: "data" | "error" | "pending";
-  value: any;
-}
+export type StateValue<T> = { kind: "value"; value: T };
+/**
+ * @internal
+ */
+export type StateError = { kind: "error"; value: Error };
+/**
+ * @internal
+ */
+export type StatePending<T> = { kind: "pending"; value: Promise<StateData<T>> };
 
+/**
+ * @internal
+ */
+export type StateData<T> = StateValue<T> | StatePending<T> | StateError;
 /**
  * @internal
  */
 export interface StateDataIterator {
-  items: Map<string, StateData>;
+  items: Map<string, StateData<any>>;
   next: () => StateDataIterator | null;
-}
-
-/**
- * @internal
- */
-export interface StateData {
-  kind: "data" | "error" | "pending";
-  value: any;
 }
 
 /**
@@ -47,7 +50,7 @@ export interface ResumeNextProps {
  */
 export interface ResumeScriptProps {
   prefix: string;
-  items: Map<string, StateData>;
+  items: Map<string, StateData<any>>;
   createMap: boolean;
 }
 
@@ -59,24 +62,41 @@ export const Context = createContext<Storage | null>(null);
 /**
  * @internal
  */
-export function getData(storage: Storage): Map<string, StateData> {
+export function getData(storage: Storage): Map<string, StateData<any>> {
   return storage._data;
 }
 
 /**
  * @internal
  */
-export function setStateData<T>(storage: Storage, id: string, value: T): void {
-  storage._data.set(id, { kind: "data", value });
-  triggerListeners(storage, id, "data", value);
-}
-
-/**
- * @internal
- */
-export function setStateError(storage: Storage, id: string, error: any): void {
-  storage._data.set(id, { kind: "error", value: error });
-  triggerListeners(storage, id, "error", error);
+export function setState<T>(
+  storage: Storage,
+  id: string,
+  kind: "value",
+  value: T
+): StateData<T>;
+export function setState<T>(
+  storage: Storage,
+  id: string,
+  kind: "pending",
+  value: Promise<StateData<T>>
+): StateData<T>;
+export function setState(
+  storage: Storage,
+  id: string,
+  kind: "error",
+  value: Error
+): StateData<any>;
+export function setState<T>(
+  storage: Storage,
+  id: string,
+  kind: StateKind,
+  value: any
+): StateData<T> {
+  const entry = { kind, value };
+  storage._data.set(id, entry);
+  triggerListeners(storage, id, kind, value);
+  return entry;
 }
 
 /**
@@ -86,7 +106,7 @@ export function resolveState<T>(
   storage: Storage,
   id: string,
   value: T | Promise<T>
-): T {
+): StateData<T> {
   const data = storage._data.get(id);
 
   if (data && data.kind === "pending") {
@@ -97,20 +117,16 @@ export function resolveState<T>(
 
   if (!isThenable(value)) {
     // Plain value
-    setStateData(storage, id, value);
-
-    return value;
+    return setState(storage, id, "value", value);
   }
 
-  const p = value.then(
-    (d) => setStateData(storage, id, d),
-    (err) => setStateError(storage, id, err)
+  const p: Promise<StateData<T>> = value.then(
+    (d) => setState(storage, id, "value", d),
+    (err) => setState(storage, id, "error", err)
   );
 
-  storage._data.set(id, { kind: "pending", value: p });
-
   // Await/suspend
-  throw p;
+  return setState(storage, id, "pending", p);
 }
 
 /**
@@ -119,14 +135,14 @@ export function resolveState<T>(
 export function triggerListeners(
   storage: Storage,
   id: string,
-  kind: "data" | "error" | "drop",
+  kind: StateKind | "drop",
   value: any
 ): void {
-  for (const f of storage._listeners.get(id) ?? []) {
+  for (const f of storage._listeners.get(id) || []) {
     f(id, kind, value);
   }
 
-  for (const f of storage._listeners.get("*") ?? []) {
+  for (const f of storage._listeners.get("*") || []) {
     f(id, kind, value);
   }
 }

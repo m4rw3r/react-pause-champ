@@ -9,16 +9,18 @@ import {
   Context,
   ResumeInner,
   StateData,
+  StateDropped,
   StateKind,
   stateDataIteratorNext,
-  resolveState,
+  setState,
+  resolveStateValue,
   triggerListeners,
 } from "./internal";
 
 /**
  * Data popluated using <Resume/>
  */
-export type ResumeData = Map<string, any>;
+export type ResumeData = Map<string, unknown>;
 /**
  * State data initialization.
  *
@@ -48,15 +50,14 @@ export type UpdateCallback<T> = (update: Update<T>) => void;
 /**
  * A listener for state-data updates.
  */
-export type Listener = (
+export type Listener<T> = (
   id: string,
-  kind: "value" | "pending" | "error" | "drop",
-  value: any
-) => any;
+  entry: StateData<T> | StateDropped
+) => unknown;
 /**
  * Function used to unregister a listener.
  */
-export type UnregisterFn = () => any;
+export type UnregisterFn = () => void;
 /**
  * Properties for creating a Provider.
  */
@@ -89,7 +90,7 @@ export class Storage {
   /**
    * @internal
    */
-  readonly _listeners: Map<string, Set<Listener>> = new Map();
+  readonly _listeners: Map<string, Set<Listener<any>>> = new Map();
 
   constructor(data?: ResumeData | Storage | null) {
     this._data =
@@ -116,7 +117,7 @@ export class Storage {
    *
    * Call the returned function to unregister.
    */
-  registerListener(listener: Listener, id: string = "*"): UnregisterFn {
+  registerListener<T>(listener: Listener<T>, id: string = "*"): UnregisterFn {
     if (!this._listeners.has(id)) {
       this._listeners.set(id, new Set());
     }
@@ -134,14 +135,23 @@ export class Storage {
    * Initialize a state if not already initialized.
    */
   initState<T>(id: string, init: Init<T>): StateData<T> {
-    return (
-      this._data.get(id) ||
-      resolveState(
+    const data = this._data.get(id);
+
+    if (data) {
+      return data;
+    }
+
+    try {
+      return resolveStateValue(
         this,
         id,
         typeof init === "function" ? (init as InitFn<T>)() : init
-      )
-    );
+      );
+    } catch (e: any) {
+      // If the init fails, save it and propagate it as an error into the component, we are now in
+      // an error state:
+      return setState(this, id, { kind: "error", value: e });
+    }
   }
 
   /**
@@ -152,19 +162,25 @@ export class Storage {
 
     if (!data || data.kind !== "value") {
       throw new Error(
-        `Attempted to update state '${id}' which is not initialized.`
+        `Attempted to update state '${id}' which does not have a value (was '${
+          !data ? "uninitialized" : data.kind
+        }').`
       );
     }
 
-    // Just ignore the values, we trigger a re-render through listeners which
-    // will then throw for Suspense/ErrorBoundary:
-    resolveState(
-      this,
-      id,
-      typeof update === "function"
-        ? (update as UpdateFn<T>)(data.value)
-        : update
-    );
+    try {
+      // We trigger a re-render through listeners which will then throw for Suspense/ErrorBoundary:
+      resolveStateValue(
+        this,
+        id,
+        typeof update === "function"
+          ? (update as UpdateFn<T>)(data.value)
+          : update
+      );
+    } catch (e: any) {
+      // If the update fails, propagate it as an error into the component
+      setState(this, id, { kind: "error", value: e });
+    }
   }
 
   /**
@@ -172,7 +188,8 @@ export class Storage {
    */
   dropState(id: string) {
     this._data.delete(id);
-    triggerListeners(this, id, "drop", null);
+    // TODO: Maybe add old value?
+    triggerListeners(this, id, { kind: "drop", value: null });
   }
 }
 
@@ -213,25 +230,29 @@ export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
     throw new Error("useWeird() must be inside a <Weird.Provider/>");
   }
 
-  const { kind, value } = storage.initState(id, init);
-  // useState here to trigger re-render
-  const [_, setTrigger] = useState(value);
+  // useState() here to trigger re-render
+  // We do not have to re-read the data from storage since the listener is updating
+  // the state and React 18 is batching state-updates inside promises and timers
+  const [entry, setEntry] = useState<StateData<T>>(() =>
+    storage.initState(id, init)
+  );
 
   // TODO: Skip this call on server somehow
   // TODO: Fix issue caused by re-rendering in React.StrictMode which causes it to remove the state
   useEffect(() => {
-    const unlisten = storage.registerListener((_id, _kind, value) => {
-      // console.log("useWeird().listener", _kind, value);
-      // TODO: Trigger also if we trigger async
-      // TODO: How do we manage this?
-      // TODO: How do we manage changing the `id`? A new id will cause a weird setup, eg:
-      // 1. ('a', 'data1') -> 'data1'
-      // 2. ('b', 'data2') -> 'data2'
-      // 3. update('data1') -> no change
-      //
-      // The issue is that we have to also try to avoid-re-renders, maybe add re-render logic here?
-
-      setTrigger(value);
+    const unlisten = storage.registerListener<T>((_id, newEntry) => {
+      if (newEntry.kind === "drop") {
+        // FIXME: Ensure this never happens:
+        // We fucked up, we need to reinit:
+        setEntry({
+          kind: "error",
+          value: new Error(
+            `State '${id}' got dropped while we were listening.`
+          ),
+        });
+      } else {
+        setEntry(newEntry);
+      }
     }, id);
 
     return () => {
@@ -242,11 +263,11 @@ export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
   }, [storage, id]);
 
   // Throw at end once we have initialized all hooks
-  if (kind !== "value") {
+  if (entry.kind !== "value") {
     // Error or Suspense-Promise to throw
-    throw value;
+    throw entry.value;
   }
 
   // TODO: useCallback()
-  return [value, (update: Update<T>) => storage.updateState(id, update)];
+  return [entry.value, (update: Update<T>) => storage.updateState(id, update)];
 }

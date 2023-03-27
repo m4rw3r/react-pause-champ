@@ -3,28 +3,16 @@ import { Storage } from "./impl";
 
 // TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
 export type StateKind = "value" | "pending" | "error";
-/**
- * @internal
- */
 export type StateValue<T> = { kind: "value"; value: T };
-/**
- * @internal
- */
 export type StateError = { kind: "error"; value: Error };
-/**
- * @internal
- */
-export type StatePending<T> = { kind: "pending"; value: Promise<StateData<T>> };
-
-/**
- * @internal
- */
-export type StateData<T> = StateValue<T> | StatePending<T> | StateError;
+export type StatePending = { kind: "pending"; value: Promise<unknown> };
+export type StateData<T> = StateValue<T> | StatePending | StateError;
+export type StateDropped = { kind: "drop"; value: null };
 /**
  * @internal
  */
 export interface StateDataIterator {
-  items: Map<string, StateData<any>>;
+  items: Map<string, StateData<unknown>>;
   next: () => StateDataIterator | null;
 }
 
@@ -50,7 +38,7 @@ export interface ResumeNextProps {
  */
 export interface ResumeScriptProps {
   prefix: string;
-  items: Map<string, StateData<any>>;
+  items: Map<string, StateData<unknown>>;
   createMap: boolean;
 }
 
@@ -62,7 +50,7 @@ export const Context = createContext<Storage | null>(null);
 /**
  * @internal
  */
-export function getData(storage: Storage): Map<string, StateData<any>> {
+export function getData(storage: Storage): Map<string, StateData<unknown>> {
   return storage._data;
 }
 
@@ -72,79 +60,51 @@ export function getData(storage: Storage): Map<string, StateData<any>> {
 export function setState<T>(
   storage: Storage,
   id: string,
-  kind: "value",
-  value: T
-): StateData<T>;
-export function setState<T>(
-  storage: Storage,
-  id: string,
-  kind: "pending",
-  value: Promise<StateData<T>>
-): StateData<T>;
-export function setState(
-  storage: Storage,
-  id: string,
-  kind: "error",
-  value: Error
-): StateData<any>;
-export function setState<T>(
-  storage: Storage,
-  id: string,
-  kind: StateKind,
-  value: any
+  entry: StateData<T>
 ): StateData<T> {
-  const entry = { kind, value };
   storage._data.set(id, entry);
-  triggerListeners(storage, id, kind, value);
+  triggerListeners(storage, id, entry);
+
   return entry;
 }
 
-/**
- * @internal
- */
-export function resolveState<T>(
+export function resolveStateValue<T>(
   storage: Storage,
   id: string,
   value: T | Promise<T>
 ): StateData<T> {
-  const data = storage._data.get(id);
+  // We cannot be in a state-transition at this point since all entrypoints to this function
+  // ensure that either a) the state does not yet exist, or b) the state is in "value" state.
 
-  if (data && data.kind === "pending") {
-    throw new Error(
-      `Attempted to resolve a state-update in '${id}' while an existing state-update is active.`
-    );
-  }
-
+  // Special-casing the non-promise case to avoid an extra re-render on state initialization.
   if (!isThenable(value)) {
-    // Plain value
-    return setState(storage, id, "value", value);
+    return setState(storage, id, { kind: "value", value });
   }
 
-  const p: Promise<StateData<T>> = value.then(
-    (d) => setState(storage, id, "value", d),
-    (err) => setState(storage, id, "error", err)
+  const pending = value.then(
+    (value) => setState(storage, id, { kind: "value", value }),
+    (error) => setState(storage, id, { kind: "error", value: error })
   );
 
-  // Await/suspend
-  return setState(storage, id, "pending", p);
+  // TODO: Merge updates when they happen quickly? To prevent re-renders?
+  // Save for await/suspend
+  return setState<T>(storage, id, { kind: "pending", value: pending });
 }
 
 /**
  * @internal
  */
-export function triggerListeners(
+export function triggerListeners<T>(
   storage: Storage,
   id: string,
-  kind: StateKind | "drop",
-  value: any
+  entry: StateData<T> | StateDropped
 ): void {
-  //console.log("triggerListeners", kind, value);
   for (const f of storage._listeners.get(id) || []) {
-    f(id, kind, value);
+    f(id, entry);
   }
 
   for (const f of storage._listeners.get("*") || []) {
-    f(id, kind, value);
+    f(id, entry);
   }
 }
 

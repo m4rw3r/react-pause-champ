@@ -109,6 +109,7 @@ export class Storage {
       throw new Error(`State '${id}' has already been initialized.`);
     }
 
+    // TODO: Any use here trying to trigger listeners?
     this._data.set(id, { kind, value });
   }
 
@@ -135,10 +136,10 @@ export class Storage {
    * Initialize a state if not already initialized.
    */
   initState<T>(id: string, init: Init<T>): StateData<T> {
-    const data = this._data.get(id);
+    const entry = this._data.get(id);
 
-    if (data) {
-      return data;
+    if (entry) {
+      return entry;
     }
 
     try {
@@ -158,12 +159,12 @@ export class Storage {
    * Attempt to update an existing state.
    */
   updateState<T>(id: string, update: Update<T>): void {
-    const data = this._data.get(id);
+    const entry = this._data.get(id);
 
-    if (!data || data.kind !== "value") {
+    if (!entry || entry.kind !== "value") {
       throw new Error(
         `Attempted to update state '${id}' which does not have a value (was '${
-          !data ? "uninitialized" : data.kind
+          !entry ? "uninitialized" : entry.kind
         }').`
       );
     }
@@ -174,7 +175,7 @@ export class Storage {
         this,
         id,
         typeof update === "function"
-          ? (update as UpdateFn<T>)(data.value)
+          ? (update as UpdateFn<T>)(entry.value)
           : update
       );
     } catch (e: any) {

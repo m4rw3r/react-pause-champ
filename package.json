@@ -1,7 +1,7 @@
 {
-  "name": "@m4rw3r/react-iso-state",
+  "name": "@m4rw3r/react-pause-champ",
   "version": "0.0.1",
-  "description": "Isomorphic async-aware state using React Suspense",
+  "description": "Isomorphic async-aware state hook using React Suspense with Server-Side-Rendering support",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -19,7 +19,9 @@
     "React",
     "isomorphic",
     "state",
-    "async"
+    "async",
+    "hook",
+    "ssr"
   ],
   "author": "Martin Wernstål <m4rw3r@gmail.com>",
   "license": "MIT",

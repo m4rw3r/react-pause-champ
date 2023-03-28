@@ -1,4 +1,4 @@
-import { Storage, Provider, StateKind, useWeird } from "./index";
+import { Store, Provider, useChamp } from "./index";
 import { getData } from "./internal";
 import {
   ComponentType,
@@ -37,7 +37,7 @@ function Suspended(): JSX.Element {
 function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
   return (
     <Suspense fallback={<Suspended />}>
-      <Provider storage={storage}>{children}</Provider>
+      <Provider store={store}>{children}</Provider>
     </Suspense>
   );
 }
@@ -50,7 +50,7 @@ function StrictModeWrapper({
   return (
     <StrictMode>
       <Suspense fallback={<Suspended />}>
-        <Provider storage={storage}>{children}</Provider>
+        <Provider store={store}>{children}</Provider>
       </Suspense>
     </StrictMode>
   );
@@ -126,22 +126,22 @@ function renderHook<P extends any[], T>(
   return { container, result, rerender, error, unmount };
 }
 
-let storage = new Storage();
+let store = new Store();
 
 jest.useFakeTimers();
 // TODO: How to duplicate and run the test with <React.StrictMode/>?
 
 beforeEach(() => {
-  storage = new Storage();
+  store = new Store();
 });
 
 afterEach(() => {
   console.error = oldConsoleError;
 });
 
-describe("new Storage()", () => {
+describe("new Store()", () => {
   it("creates a new empty instance", () => {
-    const s = new Storage();
+    const s = new Store();
 
     expect(s._data).toEqual(new Map());
     expect(s._listeners).toEqual(new Map());
@@ -150,55 +150,55 @@ describe("new Storage()", () => {
   it("reuses an existing Map instance if supplied", () => {
     const theMap = new Map();
 
-    theMap.set("test", { kind: StateKind.Value, value: "existing value" });
+    theMap.set("test", { kind: "value", value: "existing value" });
 
-    const s = new Storage(theMap);
+    const s = new Store(theMap);
 
     expect(s._data).toBe(theMap);
     expect(s._listeners).toEqual(new Map());
   });
 
-  it("copies data from a Storage instance if supplied", () => {
+  it("copies data from a Store instance if supplied", () => {
     const testObject = { name: "test-object" };
     const initFn = jest.fn(() => testObject);
 
-    const entry = storage.initState("test", initFn);
+    const entry = store.initState("test", initFn);
 
-    expect(entry).toEqual({ kind: StateKind.Value, value: testObject });
+    expect(entry).toEqual({ kind: "value", value: testObject });
     expect(entry.value).toBe(testObject);
     expect(initFn.mock.calls).toHaveLength(1);
 
-    const s = new Storage(storage);
+    const s = new Store(store);
 
     expect(s._data).toEqual(
-      new Map([["test", { kind: StateKind.Value, value: testObject }]])
+      new Map([["test", { kind: "value", value: testObject }]])
     );
     expect(s._listeners).toEqual(new Map());
 
     const newEntry = s.initState("test", initFn);
 
-    expect(newEntry).toEqual({ kind: StateKind.Value, value: testObject });
+    expect(newEntry).toEqual({ kind: "value", value: testObject });
     expect(newEntry.value).toBe(testObject);
     expect(initFn.mock.calls).toHaveLength(1);
   });
 });
 
-describe("useWeird()", () => {
+describe("useChamp()", () => {
   it("throws when no <Provider/> wraps it", () => {
-    const { error, result } = renderHook(useWeird, {}, "test", 123);
+    const { error, result } = renderHook(useChamp, {}, "test", 123);
 
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toEqual(
-      new Error("useWeird() must be inside a <Weird.Provider/>")
+      new Error("useChamp() must be inside a <Provider/>")
     );
-    expect(getData(storage).get("test")).toEqual(undefined);
+    expect(getData(store).get("test")).toEqual(undefined);
   });
 
   it("throws errors", () => {
     const rejection = new Error("throws error test");
     const { error, result } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "throw-test",
       () => {
@@ -209,7 +209,7 @@ describe("useWeird()", () => {
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toBe(rejection);
-    expect(getData(storage).get("throw-test")).toEqual({
+    expect(getData(store).get("throw-test")).toEqual({
       kind: "error",
       value: rejection,
     });
@@ -223,7 +223,7 @@ describe("useWeird()", () => {
     });
     const rejection = new Error("throws async error test");
     const { error, result } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "async-throw-test",
       () => waiting
@@ -237,7 +237,7 @@ describe("useWeird()", () => {
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toBe(rejection);
-    expect(getData(storage).get("async-throw-test")).toEqual({
+    expect(getData(store).get("async-throw-test")).toEqual({
       kind: "error",
       value: rejection,
     });
@@ -247,7 +247,7 @@ describe("useWeird()", () => {
     const testObject1 = { test: "test-object-1" };
     const testObject2 = { test: "test-object-2" };
     const { error, result, rerender } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test",
       testObject1
@@ -257,7 +257,7 @@ describe("useWeird()", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject1);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: testObject1,
     });
@@ -267,7 +267,7 @@ describe("useWeird()", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
     expect(result.current[0]).toBe(testObject1);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: testObject1,
     });
@@ -277,7 +277,7 @@ describe("useWeird()", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(3);
     expect(result.current[0]).toBe(testObject1);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: testObject1,
     });
@@ -287,7 +287,7 @@ describe("useWeird()", () => {
     const testObject = { test: "test-object-1" };
     const testObject2 = { test: "test-object-2" };
     const { error, result, rerender } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test",
       testObject
@@ -297,11 +297,11 @@ describe("useWeird()", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: testObject,
     });
-    expect(getData(storage).get("test2")).toEqual(undefined);
+    expect(getData(store).get("test2")).toEqual(undefined);
 
     await rerender("test2", testObject2);
 
@@ -310,11 +310,11 @@ describe("useWeird()", () => {
     expect(error.all).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
-    expect(getData(storage).get("test2")).toEqual({
+    expect(getData(store).get("test2")).toEqual({
       kind: "value",
       value: testObject2,
     });
-    expect(getData(storage).get("test")).toEqual(undefined);
+    expect(getData(store).get("test")).toEqual(undefined);
 
     await rerender("test", testObject2);
 
@@ -322,11 +322,11 @@ describe("useWeird()", () => {
     expect(result.all).toHaveLength(3);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: testObject2,
     });
-    expect(getData(storage).get("test2")).toEqual(undefined);
+    expect(getData(store).get("test2")).toEqual(undefined);
   });
 
   it("calls init callback exactly once", () => {
@@ -334,7 +334,7 @@ describe("useWeird()", () => {
     const init = jest.fn(() => newObj);
 
     const { container, error, result } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-init",
       init
@@ -347,27 +347,27 @@ describe("useWeird()", () => {
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(init.mock.calls).toHaveLength(1);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-init")).toEqual({
+    expect(getData(store).get("test-init")).toEqual({
       kind: "value",
       value: newObj,
     });
   });
 });
 
-describe("Storage.unsuspend()", () => {
+describe("Store.unsuspend()", () => {
   it("value is used by hook", () => {
     const unsuspendedObj = { name: "unsuspended-obj" };
     const newObj = { name: "new-obj" };
     const init = jest.fn(() => newObj);
 
-    storage.unsuspend("test-unsuspend", StateKind.Value, unsuspendedObj);
-    expect(getData(storage).get("test-unsuspend")).toEqual({
+    store.unsuspend("test-unsuspend", "value", unsuspendedObj);
+    expect(getData(store).get("test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
     });
 
     const { container, result, error, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-unsuspend",
       init
@@ -380,7 +380,7 @@ describe("Storage.unsuspend()", () => {
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(init.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-unsuspend")).toEqual({
+    expect(getData(store).get("test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
     });
@@ -391,7 +391,7 @@ describe("Storage.unsuspend()", () => {
     expect(result.all).toHaveLength(1);
     expect(init.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test-unsuspend")).toBeUndefined();
+    expect(getData(store).get("test-unsuspend")).toBeUndefined();
   });
 
   it("value is used by hook, StrictMode", () => {
@@ -399,14 +399,14 @@ describe("Storage.unsuspend()", () => {
     const newObj = { name: "new-obj" };
     const init = jest.fn(() => newObj);
 
-    storage.unsuspend("test-unsuspend", StateKind.Value, unsuspendedObj);
-    expect(getData(storage).get("test-unsuspend")).toEqual({
+    store.unsuspend("test-unsuspend", "value", unsuspendedObj);
+    expect(getData(store).get("test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
     });
 
     const { container, result, error, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: StrictModeWrapper },
       "test-unsuspend",
       init
@@ -418,7 +418,7 @@ describe("Storage.unsuspend()", () => {
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(init.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-unsuspend")).toEqual({
+    expect(getData(store).get("test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
     });
@@ -429,14 +429,14 @@ describe("Storage.unsuspend()", () => {
     expect(result.all).toHaveLength(2);
     expect(init.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test-unsuspend")).toBeUndefined();
+    expect(getData(store).get("test-unsuspend")).toBeUndefined();
   });
 });
 
-describe("useWeird().update", () => {
+describe("useChamp().update", () => {
   it("triggers re-render with updated values", async () => {
     const { container, error, result, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test",
       1
@@ -448,7 +448,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(1);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: 1,
     });
@@ -462,7 +462,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(2);
     expect(result.current[1]).toBe(update);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test")).toEqual({
+    expect(getData(store).get("test")).toEqual({
       kind: "value",
       value: 2,
     });
@@ -473,7 +473,7 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(2);
     expect(result.current[0]).toBe(2);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test")).toBeUndefined();
+    expect(getData(store).get("test")).toBeUndefined();
   });
 
   it("triggers re-render with async-updated values", async () => {
@@ -484,7 +484,7 @@ describe("useWeird().update", () => {
     const dataObj = { name: "data-obj" };
     const newDataObj = { name: "new-data-obj" };
     const { container, error, result, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-update-async",
       dataObj
@@ -496,7 +496,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async")).toEqual({
+    expect(getData(store).get("test-update-async")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -509,7 +509,7 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async")).toEqual({
+    expect(getData(store).get("test-update-async")).toEqual({
       kind: "pending",
       value: waiting,
     });
@@ -526,7 +526,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(newDataObj);
     expect(result.current[1]).toBe(update);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async")).toEqual({
+    expect(getData(store).get("test-update-async")).toEqual({
       kind: "value",
       value: newDataObj,
     });
@@ -536,7 +536,7 @@ describe("useWeird().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test-update-async")).toBeUndefined();
+    expect(getData(store).get("test-update-async")).toBeUndefined();
   });
 
   it("discards async-updated values from unmounted components", async () => {
@@ -551,7 +551,7 @@ describe("useWeird().update", () => {
     const dataObj = { name: "data-obj" };
     const newDataObj = { name: "new-data-obj" };
     const { container, error, result, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
       dataObj
@@ -564,7 +564,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -578,7 +578,7 @@ describe("useWeird().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "pending",
       value: waiting,
     });
@@ -589,7 +589,7 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
 
     // We have to wait for the promise to complete
     await act(async () => {
@@ -606,7 +606,7 @@ describe("useWeird().update", () => {
       )
     );
     expect(container.innerHTML).toMatch("");
-    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
   });
 
   it("discards async-updated values from old components", async () => {
@@ -621,7 +621,7 @@ describe("useWeird().update", () => {
     const dataObj = { name: "data-obj" };
     const newDataObj = { name: "new-data-obj" };
     let { container, error, result, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
       dataObj
@@ -634,7 +634,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -648,7 +648,7 @@ describe("useWeird().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "pending",
       value: waiting,
     });
@@ -659,11 +659,11 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
 
     // Render again, with same id
     ({ container, error, result, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
       dataObj
@@ -673,8 +673,8 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toEqual([]);
     expect(container.innerHTML).toMatch("");
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
-      kind: StateKind.Value,
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
+      kind: "value",
       value: dataObj,
     });
 
@@ -693,8 +693,8 @@ describe("useWeird().update", () => {
       )
     );
     expect(container.innerHTML).toMatch("");
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
-      kind: StateKind.Value,
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
+      kind: "value",
       value: dataObj,
     });
   });
@@ -715,7 +715,7 @@ describe("useWeird().update", () => {
     const dataObj = { name: "data-obj" };
     const newDataObj = { name: "new-data-obj" };
     let { container, error, result, unmount } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
       dataObj
@@ -728,7 +728,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -742,7 +742,7 @@ describe("useWeird().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "pending",
       value: waiting,
     });
@@ -753,7 +753,7 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
 
     // Render again, with same id
     let result2;
@@ -763,7 +763,7 @@ describe("useWeird().update", () => {
       result: result2,
       unmount,
     } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
       () => waiting2
@@ -773,8 +773,8 @@ describe("useWeird().update", () => {
     expect(result2.all).toHaveLength(0);
     expect(consoleError.mock.calls).toEqual([]);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
-      kind: StateKind.Pending,
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
+      kind: "pending",
       value: waiting2,
     });
 
@@ -793,8 +793,8 @@ describe("useWeird().update", () => {
       )
     );
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
-      kind: StateKind.Pending,
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
+      kind: "pending",
       value: waiting2,
     });
 
@@ -812,7 +812,7 @@ describe("useWeird().update", () => {
     expect(result2.current[0]).toBe(newDataObj);
     expect(result2.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+    expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: newDataObj,
     });
@@ -826,7 +826,7 @@ describe("useWeird().update", () => {
     });
     const rejection = new Error("throws async error test");
     const { container, error, result } = renderHook(
-      useWeird,
+      useChamp,
       { wrapper: Wrapper },
       "update-async-throw-test",
       "init"
@@ -838,7 +838,7 @@ describe("useWeird().update", () => {
     expect(result.current[0]).toBe("init");
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(storage).get("update-async-throw-test")).toEqual({
+    expect(getData(store).get("update-async-throw-test")).toEqual({
       kind: "value",
       value: "init",
     });
@@ -851,7 +851,7 @@ describe("useWeird().update", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toBeUndefined();
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(storage).get("update-async-throw-test")).toEqual({
+    expect(getData(store).get("update-async-throw-test")).toEqual({
       kind: "pending",
       value: waiting,
     });
@@ -869,7 +869,7 @@ describe("useWeird().update", () => {
     expect(error.current).toBe(rejection);
     expect(result.current).toBeUndefined();
     expect(container.innerHTML).toMatch(TEST_COMPONENT_ERROR_HTML);
-    expect(getData(storage).get("update-async-throw-test")).toEqual({
+    expect(getData(store).get("update-async-throw-test")).toEqual({
       kind: "error",
       value: rejection,
     });

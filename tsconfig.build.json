@@ -3,8 +3,8 @@
   "exclude": [
     "*.config.ts",
     "dist/**/*",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx"
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ],
   "compilerOptions": {
     "rootDir": "src",
@@ -13,6 +13,6 @@
     "emitDeclarationOnly": true,
     "isolatedModules": false,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
   }
 }

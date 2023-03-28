@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
     "build": "npm run build:d.ts && npm run build:js",
@@ -24,7 +25,8 @@
     "state",
     "async",
     "hook",
-    "ssr"
+    "ssr",
+    "suspense"
   ],
   "author": "Martin Wernstål <m4rw3r@gmail.com>",
   "license": "MIT",

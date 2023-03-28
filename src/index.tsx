@@ -1,5 +1,5 @@
+import type { ReactNode } from "react";
 import {
-  ReactNode,
   createElement,
   useContext,
   useSyncExternalStore,
@@ -17,33 +17,16 @@ import {
 
 // TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
 /**
- * Type of data held in a state entry.
- */
-export const enum StateKind {
-  /**
-   * The entry contains a regular value.
-   */
-  Value = "value",
-  /**
-   * The entry contains a promise which is being awaited.
-   */
-  Pending = "pending",
-  /**
-   * The entry contains an error.
-   */
-  Error = "error",
-}
-/**
  * State-data entry.
  */
 export type StateEntry<T> =
-  | { kind: StateKind.Value; value: T }
-  | { kind: StateKind.Pending; value: Promise<unknown> }
-  | { kind: StateKind.Error; value: Error };
+  | { kind: "value"; value: T }
+  | { kind: "pending"; value: Promise<unknown> }
+  | { kind: "error"; value: Error };
 /**
  * Placeholder for data which has been removed.
  */
-export type StateDropped = { kind: "drop"; value: null };
+export type DroppedEntry = { kind: "drop"; value: null };
 /**
  * Data popluated using <Resume/>
  */
@@ -79,7 +62,7 @@ export type UpdateCallback<T> = (update: Update<T>) => void;
  */
 export type Listener<T> = (
   id: string,
-  entry: StateEntry<T> | StateDropped
+  entry: StateEntry<T> | DroppedEntry
 ) => unknown;
 /**
  * Function used to unregister a listener.
@@ -91,9 +74,9 @@ export type UnregisterFn = () => void;
  */
 export interface ProviderProps {
   /**
-   * The storage instance for the application.
+   * The Store instance for the application.
    */
-  storage: Storage;
+  store: Store;
   /**
    * Nested JSX-elements.
    */
@@ -104,16 +87,15 @@ export interface ProviderProps {
  */
 export interface ResumeProps {
   /**
-   * Java-Script prefix to reach .unsuspend(), eg. `window.storage`.
+   * Java-Script prefix to reach .unsuspend(), eg. `window.store`.
    */
   prefix: string;
 }
 
-// TODO: Rename since it conflicts with global named Storage
 /**
  * Container for application state data.
  */
-export class Storage {
+export class Store {
   /**
    * @internal
    */
@@ -123,11 +105,11 @@ export class Storage {
    */
   readonly _listeners: Map<string, Set<Listener<any>>> = new Map();
 
-  constructor(data?: ResumeData | Storage | null) {
+  constructor(data?: ResumeData | Store | null) {
     this._data =
       data instanceof Map
         ? data
-        : data instanceof Storage
+        : data instanceof Store
         ? new Map(data._data)
         : new Map();
   }
@@ -135,7 +117,7 @@ export class Storage {
   /**
    * Attempt to add data for a state-to-be-unsuspended.
    */
-  unsuspend(id: string, kind: StateKind, value: any): void {
+  unsuspend(id: string, kind: "value" | "error", value: any): void {
     if (this._data.has(id)) {
       throw new Error(`State '${id}' has already been initialized.`);
     }
@@ -149,7 +131,7 @@ export class Storage {
    *
    * Call the returned function to unregister.
    */
-  registerListener<T>(listener: Listener<T>, id: string): UnregisterFn {
+  listen<T>(id: string, listener: Listener<T>): UnregisterFn {
     if (!this._listeners.has(id)) {
       this._listeners.set(id, new Set());
     }
@@ -182,7 +164,7 @@ export class Storage {
     } catch (e: any) {
       // If the init fails, save it and propagate it as an error into the
       // component, we are now in an error state:
-      return setState(this, id, { kind: StateKind.Error, value: e });
+      return setState(this, id, { kind: "error", value: e });
     }
   }
 
@@ -192,7 +174,7 @@ export class Storage {
   updateState<T>(id: string, update: Update<T>): void {
     const entry = this._data.get(id);
 
-    if (!entry || entry.kind !== StateKind.Value) {
+    if (!entry || entry.kind !== "value") {
       throw new Error(
         `State update of '${id}' requires an existing value (was '${
           !entry ? "empty" : entry.kind
@@ -212,7 +194,7 @@ export class Storage {
       );
     } catch (e: any) {
       // If the update fails, propagate it as an error into the component
-      setState(this, id, { kind: StateKind.Error, value: e });
+      setState(this, id, { kind: "error", value: e });
     }
   }
 
@@ -228,27 +210,27 @@ export class Storage {
 }
 
 /**
- * A provider for the application-wide state-storage.
+ * A provider for the application-wide state-store.
  */
-export function Provider({ storage, children }: ProviderProps): JSX.Element {
-  return <Context.Provider value={storage}>{children}</Context.Provider>;
+export function Provider({ store, children }: ProviderProps): JSX.Element {
+  return <Context.Provider value={store}>{children}</Context.Provider>;
 }
 
 /**
  * Component which first creates a placeholder `Map` if `prefix` is not set,
- * then populates this map or any replacing `Storage` with state data as it is resolved.
+ * then populates this map or any replacing `Store` with state data as it is resolved.
  */
 export function Resume({ prefix }: ResumeProps): JSX.Element {
-  const storage = useContext(Context);
+  const store = useContext(Context);
 
-  if (!storage) {
+  if (!store) {
     throw new Error(`<Weird.Resume/> must be inside a <Weird.Provider/>`);
   }
 
   return (
     <ResumeInner
       prefix={prefix}
-      iter={stateDataIteratorNext(storage)}
+      iter={stateDataIteratorNext(store)}
       createMap
     />
   );
@@ -257,14 +239,14 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
 /**
  * Create or use a state instance with the given id.
  */
-export function useWeird<T>(
+export function useChamp<T>(
   id: string,
   initialState: Init<T>
 ): [T, UpdateCallback<T>] {
-  const storage = useContext(Context);
+  const store = useContext(Context);
 
-  if (!storage) {
-    throw new Error(`useWeird() must be inside a <Weird.Provider/>`);
+  if (!store) {
+    throw new Error(`useChamp() must be inside a <Provider/>`);
   }
 
   // Guard value for cleanup callback, useRef() will remain the same even in
@@ -278,12 +260,12 @@ export function useWeird<T>(
   const { init, update, subscribe } = useMemo(
     () => ({
       // Note: Always called twice in dev to check return-value not updating
-      init: () => storage.initState(id, initialState),
+      init: () => store.initState(id, initialState),
       // Just a normal update
-      update: (update: Update<T>) => storage.updateState(id, update),
+      update: (update: Update<T>) => store.updateState(id, update),
       // Subscribe to updates, but also drop the state-data if we are unmounting
       subscribe: (callback: () => void) => {
-        const unsubscribe = storage.registerListener(callback, id);
+        const unsubscribe = store.listen(id, callback);
         // Include the id so we can ensure we still drop when they do differ
         const nonce = { id };
 
@@ -307,20 +289,20 @@ export function useWeird<T>(
               guard.current === nonce ||
               (guard.current && guard.current.id !== id)
             ) {
-              storage.dropState(id);
+              store.dropState(id);
             }
           }, 0);
         };
       },
     }),
-    [storage, id]
+    [store, id]
   );
 
   // TODO: Maybe different server snapshot?
   const entry = useSyncExternalStore(subscribe, init, init);
 
   // Throw at end once we have initialized all hooks
-  if (entry.kind !== StateKind.Value) {
+  if (entry.kind !== "value") {
     // Error or Suspense-Promise to throw
     throw entry.value;
   }

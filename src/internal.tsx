@@ -1,6 +1,6 @@
-import { StateEntry, StateDropped, StateKind } from "./index";
 import { Fragment, Suspense, createContext, createElement } from "react";
-import { Storage } from "./index";
+import { StateEntry, DroppedEntry } from "./index";
+import { Store } from "./index";
 
 /**
  * @internal
@@ -39,25 +39,25 @@ export interface ResumeScriptProps {
 /**
  * @internal
  */
-export const Context = createContext<Storage | null>(null);
+export const Context = createContext<Store | null>(null);
 
 /**
  * @internal
  */
-export function getData(storage: Storage): Map<string, StateEntry<unknown>> {
-  return storage._data;
+export function getData(store: Store): Map<string, StateEntry<unknown>> {
+  return store._data;
 }
 
 /**
  * @internal
  */
 export function setState<T>(
-  storage: Storage,
+  store: Store,
   id: string,
   entry: StateEntry<T>
 ): StateEntry<T> {
-  storage._data.set(id, entry);
-  triggerListeners(storage, id, entry);
+  store._data.set(id, entry);
+  triggerListeners(store, id, entry);
 
   return entry;
 }
@@ -73,24 +73,23 @@ export function setState<T>(
  * state can also be created again during that time, so we make sure that it
  * is the exact promise we are waiting for before proceeding with the update.
  */
-export function guardedSetState<T>(
-  storage: Storage,
+export function resolveState<T>(
+  store: Store,
   id: string,
   entry: StateEntry<T>,
   pending: Promise<any>
 ): StateEntry<T> {
-  const currentEntry = storage._data.get(id);
+  const currentEntry = store._data.get(id);
 
   if (
     !currentEntry ||
-    currentEntry.kind !== StateKind.Pending ||
+    currentEntry.kind !== "pending" ||
     currentEntry.value !== pending
   ) {
     const error = new Error(
       `Asynchronous state update of '${id}' completed on ${
         currentEntry
-          ? currentEntry.kind === StateKind.Pending &&
-            currentEntry.value !== pending
+          ? currentEntry.kind === "pending" && currentEntry.value !== pending
             ? "reinitialized"
             : "resolved"
           : "dropped"
@@ -103,14 +102,14 @@ export function guardedSetState<T>(
     throw error;
   }
 
-  return setState(storage, id, entry);
+  return setState(store, id, entry);
 }
 
 /**
  * @internal
  */
 export function resolveStateValue<T>(
-  storage: Storage,
+  store: Store,
   id: string,
   value: T | Promise<T>
 ): StateEntry<T> {
@@ -121,35 +120,28 @@ export function resolveStateValue<T>(
   // Special-casing the non-promise case to avoid an extra re-render on
   // state initialization.
   if (!isThenable(value)) {
-    return setState(storage, id, { kind: StateKind.Value, value });
+    return setState(store, id, { kind: "value", value });
   }
 
   const pending: Promise<StateEntry<T>> = value.then(
-    (value) =>
-      guardedSetState(storage, id, { kind: StateKind.Value, value }, pending),
-    (error) =>
-      guardedSetState(
-        storage,
-        id,
-        { kind: StateKind.Error, value: error },
-        pending
-      )
+    (value) => resolveState(store, id, { kind: "value", value }, pending),
+    (error) => resolveState(store, id, { kind: "error", value: error }, pending)
   );
 
   // TODO: Merge updates when they happen quickly? To prevent re-renders?
   // Save for await/suspend
-  return setState<T>(storage, id, { kind: StateKind.Pending, value: pending });
+  return setState<T>(store, id, { kind: "pending", value: pending });
 }
 
 /**
  * @internal
  */
 export function triggerListeners<T>(
-  storage: Storage,
+  store: Store,
   id: string,
-  entry: StateEntry<T> | StateDropped
+  entry: StateEntry<T> | DroppedEntry
 ): void {
-  for (const f of storage._listeners.get(id) || []) {
+  for (const f of store._listeners.get(id) || []) {
     f(id, entry);
   }
 }
@@ -158,15 +150,15 @@ export function triggerListeners<T>(
  * @internal
  */
 export function stateDataIteratorNext(
-  storage: Storage,
+  store: Store,
   emitted?: Set<string> | null
 ): StateEntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   const items = new Map();
   const pending = [];
 
-  for (const [k, v] of storage._data) {
-    if (emitted.has(k) || v.kind === StateKind.Pending) {
+  for (const [k, v] of store._data) {
+    if (emitted.has(k) || v.kind === "pending") {
       pending.push(v.value);
 
       continue;
@@ -182,7 +174,7 @@ export function stateDataIteratorNext(
 
   function done(): void {
     suspender = null;
-    result = stateDataIteratorNext(storage, emitted);
+    result = stateDataIteratorNext(store, emitted);
   }
 
   return {

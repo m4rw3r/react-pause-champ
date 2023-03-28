@@ -212,7 +212,7 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
   const storage = useContext(Context);
 
   if (!storage) {
-    throw new Error("<Weird.Resume/> must be inside a <Weird.Provider/>");
+    throw new Error(`<Weird.Resume/> must be inside a <Weird.Provider/>`);
   }
 
   return (
@@ -234,7 +234,7 @@ export function useWeird<T>(
   const storage = useContext(Context);
 
   if (!storage) {
-    throw new Error("useWeird() must be inside a <Weird.Provider/>");
+    throw new Error(`useWeird() must be inside a <Weird.Provider/>`);
   }
 
   // Guard value for cleanup callback, useRef() will remain the same even in

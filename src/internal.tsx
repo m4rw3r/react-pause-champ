@@ -1,41 +1,13 @@
+import { StateEntry, StateDropped, StateKind } from "./index";
 import { Fragment, Suspense, createContext, createElement } from "react";
-import { Storage } from "./impl";
+import { Storage } from "./index";
 
-export const enum StateKind {
-  Value = "value",
-  Pending = "pending",
-  Error = "error",
-  // Drop = "drop",
-}
-
-// TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
-// export type StateKind = "value" | "pending" | "error";
-/**
- * An entry containing a value.
- */
-export type StateValue<T> = { kind: StateKind.Value; value: T };
-/**
- * An entry containing an error.
- */
-export type StateError = { kind: StateKind.Error; value: Error };
-/**
- * An entry containing a promise which wen resolved will have updated the entry.
- */
-export type StatePending = { kind: StateKind.Pending; value: Promise<unknown> };
-/**
- * State-data entry.
- */
-export type StateData<T> = StateValue<T> | StatePending | StateError;
-/**
- * Placeholder for data which has been removed.
- */
-export type StateDropped = { kind: "drop"; value: null };
 /**
  * @internal
  */
-export interface StateDataIterator {
-  items: Map<string, StateData<unknown>>;
-  next: () => StateDataIterator | null;
+export interface StateEntryIterator {
+  items: Map<string, StateEntry<unknown>>;
+  next: () => StateEntryIterator | null;
 }
 
 /**
@@ -43,7 +15,7 @@ export interface StateDataIterator {
  */
 export interface ResumeInnerProps {
   prefix: string;
-  iter: StateDataIterator;
+  iter: StateEntryIterator;
   createMap?: boolean;
 }
 
@@ -52,7 +24,7 @@ export interface ResumeInnerProps {
  */
 export interface ResumeNextProps {
   prefix: string;
-  iter: StateDataIterator;
+  iter: StateEntryIterator;
 }
 
 /**
@@ -60,7 +32,7 @@ export interface ResumeNextProps {
  */
 export interface ResumeScriptProps {
   prefix: string;
-  items: Map<string, StateData<unknown>>;
+  items: Map<string, StateEntry<unknown>>;
   createMap: boolean;
 }
 
@@ -72,7 +44,7 @@ export const Context = createContext<Storage | null>(null);
 /**
  * @internal
  */
-export function getData(storage: Storage): Map<string, StateData<unknown>> {
+export function getData(storage: Storage): Map<string, StateEntry<unknown>> {
   return storage._data;
 }
 
@@ -82,8 +54,8 @@ export function getData(storage: Storage): Map<string, StateData<unknown>> {
 export function setState<T>(
   storage: Storage,
   id: string,
-  entry: StateData<T>
-): StateData<T> {
+  entry: StateEntry<T>
+): StateEntry<T> {
   storage._data.set(id, entry);
   triggerListeners(storage, id, entry);
 
@@ -91,6 +63,8 @@ export function setState<T>(
 }
 
 /**
+ * @internal
+ *
  * Guarded version of setState() which ensures we do not try to update state
  * data asynchronously if that data has already been completed or changed. It
  * will warn and discard the result.
@@ -102,9 +76,9 @@ export function setState<T>(
 export function guardedSetState<T>(
   storage: Storage,
   id: string,
-  entry: StateData<T>,
+  entry: StateEntry<T>,
   pending: Promise<any>
-): StateData<T> {
+): StateEntry<T> {
   const currentEntry = storage._data.get(id);
 
   if (
@@ -132,11 +106,14 @@ export function guardedSetState<T>(
   return setState(storage, id, entry);
 }
 
+/**
+ * @internal
+ */
 export function resolveStateValue<T>(
   storage: Storage,
   id: string,
   value: T | Promise<T>
-): StateData<T> {
+): StateEntry<T> {
   // We cannot be in a state-transition at this point since all entrypoints to
   // this function ensure that either a) the state does not yet exist, or
   // b) the state is in "value" state.
@@ -147,7 +124,7 @@ export function resolveStateValue<T>(
     return setState(storage, id, { kind: StateKind.Value, value });
   }
 
-  const pending: Promise<StateData<T>> = value.then(
+  const pending: Promise<StateEntry<T>> = value.then(
     (value) =>
       guardedSetState(storage, id, { kind: StateKind.Value, value }, pending),
     (error) =>
@@ -170,7 +147,7 @@ export function resolveStateValue<T>(
 export function triggerListeners<T>(
   storage: Storage,
   id: string,
-  entry: StateData<T> | StateDropped
+  entry: StateEntry<T> | StateDropped
 ): void {
   for (const f of storage._listeners.get(id) || []) {
     f(id, entry);
@@ -183,7 +160,7 @@ export function triggerListeners<T>(
 export function stateDataIteratorNext(
   storage: Storage,
   emitted?: Set<string> | null
-): StateDataIterator {
+): StateEntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   const items = new Map();
   const pending = [];
@@ -199,7 +176,7 @@ export function stateDataIteratorNext(
     items.set(k, v);
   }
 
-  let result: StateDataIterator | null = null;
+  let result: StateEntryIterator | null = null;
   let suspender: Promise<any> | null =
     pending.length > 0 ? Promise.any(pending).then(done, done) : null;
 

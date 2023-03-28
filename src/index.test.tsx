@@ -1,5 +1,5 @@
-import { Storage, Provider, useWeird } from "./index";
-import { StateKind, getData } from "./internal";
+import { Storage, Provider, StateKind, useWeird } from "./index";
+import { getData } from "./internal";
 import {
   ComponentType,
   Fragment,

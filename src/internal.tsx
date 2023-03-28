@@ -10,10 +10,25 @@ export const enum StateKind {
 
 // TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
 // export type StateKind = "value" | "pending" | "error";
+/**
+ * An entry containing a value.
+ */
 export type StateValue<T> = { kind: StateKind.Value; value: T };
+/**
+ * An entry containing an error.
+ */
 export type StateError = { kind: StateKind.Error; value: Error };
+/**
+ * An entry containing a promise which wen resolved will have updated the entry.
+ */
 export type StatePending = { kind: StateKind.Pending; value: Promise<unknown> };
+/**
+ * State-data entry.
+ */
 export type StateData<T> = StateValue<T> | StatePending | StateError;
+/**
+ * Placeholder for data which has been removed.
+ */
 export type StateDropped = { kind: "drop"; value: null };
 /**
  * @internal

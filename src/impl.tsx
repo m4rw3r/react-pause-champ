@@ -264,11 +264,15 @@ export function useWeird<T>(
           unsubscribe();
 
           // Drop the state outside React's render-loop, this ensures that it
-          // is not dropped prematurely due to <React.StrictMode/> or HMR.
+          // is not dropped prematurely due to <React.StrictMode/> or
+          // Hot-Module-Reloading.
           setTimeout(() => {
             // If the guard has not been modified, our component has not
-            // rendered and unrendered
-            // This case is also triggered if we re-render with a new id
+            // unmounted an then immediately been mounted again which means
+            // this is the last cleanup.
+
+            // This case is also triggered if we re-render with a new id to
+            // guarantee the old id gets cleaned up.
             if (
               guard.current === nonce ||
               (guard.current && guard.current.id !== id)

@@ -109,10 +109,6 @@ export function triggerListeners<T>(
   for (const f of storage._listeners.get(id) || []) {
     f(id, entry);
   }
-
-  for (const f of storage._listeners.get("*") || []) {
-    f(id, entry);
-  }
 }
 
 /**

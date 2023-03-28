@@ -115,11 +115,11 @@ export class Storage {
   }
 
   /**
-   * Listen to all state-updates / errors.
+   * Listen to state-updates / errors.
    *
    * Call the returned function to unregister.
    */
-  registerListener<T>(listener: Listener<T>, id: string = "*"): UnregisterFn {
+  registerListener<T>(listener: Listener<T>, id: string): UnregisterFn {
     if (!this._listeners.has(id)) {
       this._listeners.set(id, new Set());
     }
@@ -164,8 +164,8 @@ export class Storage {
 
     if (!entry || entry.kind !== StateKind.Value) {
       throw new Error(
-        `Attempted to update state '${id}' which does not have a value (was '${
-          !entry ? "uninitialized" : entry.kind
+        `State update of '${id}' requires an existin value (was '${
+          !entry ? "empty" : entry.kind
         }').`
       );
     }

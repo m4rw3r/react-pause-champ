@@ -8,10 +8,7 @@
   ],
   "compilerOptions": {
     "rootDir": "src",
-    "module": "esnext",
-    "target": "es2021",
     "outDir": "dist",
-    "stripInternal": true,
 
     "emitDeclarationOnly": true,
     "isolatedModules": false,

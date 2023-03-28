@@ -2,8 +2,9 @@ import {
   ReactNode,
   createElement,
   useContext,
-  useEffect,
-  useState,
+  useSyncExternalStore,
+  useRef,
+  useMemo,
 } from "react";
 import {
   Context,
@@ -151,7 +152,7 @@ export class Storage {
     } catch (e: any) {
       // If the init fails, save it and propagate it as an error into the component, we are now in
       // an error state:
-      return setState(this, id, { kind: "error", value: e });
+      return setState(this, id, { kind: StateKind.Error, value: e });
     }
   }
 
@@ -161,7 +162,7 @@ export class Storage {
   updateState<T>(id: string, update: Update<T>): void {
     const entry = this._data.get(id);
 
-    if (!entry || entry.kind !== "value") {
+    if (!entry || entry.kind !== StateKind.Value) {
       throw new Error(
         `Attempted to update state '${id}' which does not have a value (was '${
           !entry ? "uninitialized" : entry.kind
@@ -180,7 +181,7 @@ export class Storage {
       );
     } catch (e: any) {
       // If the update fails, propagate it as an error into the component
-      setState(this, id, { kind: "error", value: e });
+      setState(this, id, { kind: StateKind.Error, value: e });
     }
   }
 
@@ -224,51 +225,66 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
 /**
  * Create or use a state instance with the given id.
  */
-export function useWeird<T>(id: string, init: Init<T>): [T, UpdateCallback<T>] {
+export function useWeird<T>(
+  id: string,
+  initialState: Init<T>
+): [T, UpdateCallback<T>] {
   const storage = useContext(Context);
 
   if (!storage) {
     throw new Error("useWeird() must be inside a <Weird.Provider/>");
   }
 
-  // useState() here to trigger re-render
-  // We do not have to re-read the data from storage since the listener is updating
-  // the state and React 18 is batching state-updates inside promises and timers
-  const [entry, setEntry] = useState<StateData<T>>(() =>
-    storage.initState(id, init)
+  // Guard value for cleanup callback, useRef() will remain the same even in <React.StrictMode/>,
+  // which means we can use this to ensure we only clean up once the component really unmounts.
+  const guard = useRef<{ id: string }>();
+
+  // Make sure we always pass the same functions, both to consumers to avoid re-redering whole
+  // trees, but also to useSyncExternalStore() since it will trigger extra logic and maybe re-render
+  const { init, update, subscribe } = useMemo(
+    () => ({
+      // Note: Always called twice in dev to check return-value not updating
+      init: () => storage.initState(id, initialState),
+      // Just a normal update
+      update: (update: Update<T>) => storage.updateState(id, update),
+      // Subscribe to state-updates, but also drop the state-data if we are unmounting
+      subscribe: (callback: () => void) => {
+        const unsubscribe = storage.registerListener(callback, id);
+        // Include the id so we can ensure we still drop when they do differ
+        const nonce = { id };
+
+        // Overwrite the guard to ensure any currently scheduled drop does not run
+        guard.current = nonce;
+
+        return () => {
+          unsubscribe();
+
+          // Drop the state outside React's render-loop, this ensures that it is not dropped
+          // prematurely due to <React.StrictMode/> or HMR.
+          setTimeout(() => {
+            // If the guard has not been modified, our component has not rendered and unrendered
+            // This case is also triggered if we re-render with a new id
+            if (
+              guard.current === nonce ||
+              (guard.current && guard.current.id !== id)
+            ) {
+              storage.dropState(id);
+            }
+          }, 0);
+        };
+      },
+    }),
+    [storage, id]
   );
 
-  // TODO: Skip this call on server somehow
-  // TODO: Fix issue caused by re-rendering in React.StrictMode which causes it to remove the state
-  useEffect(() => {
-    const unlisten = storage.registerListener<T>((_id, newEntry) => {
-      if (newEntry.kind === "drop") {
-        // FIXME: Ensure this never happens:
-        // We fucked up, we need to reinit:
-        setEntry({
-          kind: "error",
-          value: new Error(
-            `State '${id}' got dropped while we were listening.`
-          ),
-        });
-      } else {
-        setEntry(newEntry);
-      }
-    }, id);
-
-    return () => {
-      unlisten();
-      // Drop state once it is no longer rendered
-      storage.dropState(id);
-    };
-  }, [storage, id]);
+  // TODO: Maybe different server snapshot?
+  const entry = useSyncExternalStore(subscribe, init, init);
 
   // Throw at end once we have initialized all hooks
-  if (entry.kind !== "value") {
+  if (entry.kind !== StateKind.Value) {
     // Error or Suspense-Promise to throw
     throw entry.value;
   }
 
-  // TODO: useCallback()
-  return [entry.value, (update: Update<T>) => storage.updateState(id, update)];
+  return [entry.value, update];
 }

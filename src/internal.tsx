@@ -1,11 +1,18 @@
 import { Fragment, Suspense, createContext, createElement } from "react";
 import { Storage } from "./impl";
 
+export const enum StateKind {
+  Value = "value",
+  Pending = "pending",
+  Error = "error",
+  // Drop = "drop",
+}
+
 // TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
-export type StateKind = "value" | "pending" | "error";
-export type StateValue<T> = { kind: "value"; value: T };
-export type StateError = { kind: "error"; value: Error };
-export type StatePending = { kind: "pending"; value: Promise<unknown> };
+// export type StateKind = "value" | "pending" | "error";
+export type StateValue<T> = { kind: StateKind.Value; value: T };
+export type StateError = { kind: StateKind.Error; value: Error };
+export type StatePending = { kind: StateKind.Pending; value: Promise<unknown> };
 export type StateData<T> = StateValue<T> | StatePending | StateError;
 export type StateDropped = { kind: "drop"; value: null };
 /**
@@ -78,17 +85,17 @@ export function resolveStateValue<T>(
 
   // Special-casing the non-promise case to avoid an extra re-render on state initialization.
   if (!isThenable(value)) {
-    return setState(storage, id, { kind: "value", value });
+    return setState(storage, id, { kind: StateKind.Value, value });
   }
 
   const pending = value.then(
-    (value) => setState(storage, id, { kind: "value", value }),
-    (error) => setState(storage, id, { kind: "error", value: error })
+    (value) => setState(storage, id, { kind: StateKind.Value, value }),
+    (error) => setState(storage, id, { kind: StateKind.Error, value: error })
   );
 
   // TODO: Merge updates when they happen quickly? To prevent re-renders?
   // Save for await/suspend
-  return setState<T>(storage, id, { kind: "pending", value: pending });
+  return setState<T>(storage, id, { kind: StateKind.Pending, value: pending });
 }
 
 /**
@@ -120,7 +127,7 @@ export function stateDataIteratorNext(
   const pending = [];
 
   for (const [k, v] of storage._data) {
-    if (emitted.has(k) || v.kind === "pending") {
+    if (emitted.has(k) || v.kind === StateKind.Pending) {
       pending.push(v.value);
 
       continue;

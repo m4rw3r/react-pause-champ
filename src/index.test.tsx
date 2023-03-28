@@ -477,8 +477,8 @@ describe("useWeird().update", () => {
   });
 
   it("triggers re-render with async-updated values", async () => {
-    let resolveWaiting: (error: Error) => void;
-    const waiting: Promise<string> = new Promise((resolve, _) => {
+    let resolveWaiting: (obj: { name: string }) => void;
+    const waiting = new Promise((resolve, _) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -544,8 +544,8 @@ describe("useWeird().update", () => {
 
     console.error = consoleError;
 
-    let resolveWaiting: (error: Error) => void;
-    const waiting: Promise<string> = new Promise((resolve, _) => {
+    let resolveWaiting: (obj: { name: string }) => void;
+    const waiting = new Promise((resolve, _) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -614,8 +614,8 @@ describe("useWeird().update", () => {
 
     console.error = consoleError;
 
-    let resolveWaiting: (error: Error) => void;
-    const waiting: Promise<string> = new Promise((resolve, _) => {
+    let resolveWaiting: (obj: { name: string }) => void;
+    const waiting = new Promise((resolve, _) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -706,10 +706,10 @@ describe("useWeird().update", () => {
 
     let resolveWaiting: (obj: { name: string }) => void;
     let resolveWaiting2: (obj: { name: string }) => void;
-    const waiting: Promise<string> = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve, _) => {
       resolveWaiting = resolve;
     });
-    const waiting2: Promise<string> = new Promise((resolve, _) => {
+    const waiting2 = new Promise((resolve, _) => {
       resolveWaiting2 = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -756,7 +756,13 @@ describe("useWeird().update", () => {
     expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
 
     // Render again, with same id
-    ({ container, error, result, unmount } = renderHook(
+    let result2;
+    ({
+      container,
+      error,
+      result: result2,
+      unmount,
+    } = renderHook(
       useWeird,
       { wrapper: Wrapper },
       "test-update-async-unmount",
@@ -764,7 +770,7 @@ describe("useWeird().update", () => {
     ));
 
     expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(0);
+    expect(result2.all).toHaveLength(0);
     expect(consoleError.mock.calls).toEqual([]);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getData(storage).get("test-update-async-unmount")).toEqual({
@@ -780,7 +786,7 @@ describe("useWeird().update", () => {
     });
 
     expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(0);
+    expect(result2.all).toHaveLength(0);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
         "Asynchronous state update of 'test-update-async-unmount' completed on reinitialized data"
@@ -800,11 +806,11 @@ describe("useWeird().update", () => {
     });
 
     expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(1);
+    expect(result2.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(1);
-    expect(result.current).toHaveLength(2);
-    expect(result.current[0]).toBe(newDataObj);
-    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(result2.current).toHaveLength(2);
+    expect(result2.current[0]).toBe(newDataObj);
+    expect(result2.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getData(storage).get("test-update-async-unmount")).toEqual({
       kind: "value",

@@ -126,7 +126,7 @@ export function guardedSetState<T>(
     // TODO: How do we properly manage this?
     console.error(error);
 
-    return error;
+    throw error;
   }
 
   return setState(storage, id, entry);
@@ -147,7 +147,7 @@ export function resolveStateValue<T>(
     return setState(storage, id, { kind: StateKind.Value, value });
   }
 
-  const pending = value.then(
+  const pending: Promise<StateData<T>> = value.then(
     (value) =>
       guardedSetState(storage, id, { kind: StateKind.Value, value }, pending),
     (error) =>

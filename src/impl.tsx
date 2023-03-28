@@ -164,7 +164,7 @@ export class Storage {
 
     if (!entry || entry.kind !== StateKind.Value) {
       throw new Error(
-        `State update of '${id}' requires an existin value (was '${
+        `State update of '${id}' requires an existing value (was '${
           !entry ? "empty" : entry.kind
         }').`
       );

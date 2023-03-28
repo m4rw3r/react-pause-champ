@@ -150,8 +150,8 @@ export class Storage {
         typeof init === "function" ? (init as InitFn<T>)() : init
       );
     } catch (e: any) {
-      // If the init fails, save it and propagate it as an error into the component, we are now in
-      // an error state:
+      // If the init fails, save it and propagate it as an error into the
+      // component, we are now in an error state:
       return setState(this, id, { kind: StateKind.Error, value: e });
     }
   }
@@ -171,7 +171,8 @@ export class Storage {
     }
 
     try {
-      // We trigger a re-render through listeners which will then throw for Suspense/ErrorBoundary:
+      // We trigger a re-render through listeners which will then throw for
+      // Suspense/ErrorBoundary in the component:
       resolveStateValue(
         this,
         id,
@@ -186,7 +187,8 @@ export class Storage {
   }
 
   /**
-   * Drop the state identified by `id`, will stop any active promises from updating after drop.
+   * Drop the state identified by `id`, will stop any active promises from
+   * updating after drop.
    */
   dropState(id: string) {
     this._data.delete(id);
@@ -235,34 +237,37 @@ export function useWeird<T>(
     throw new Error("useWeird() must be inside a <Weird.Provider/>");
   }
 
-  // Guard value for cleanup callback, useRef() will remain the same even in <React.StrictMode/>,
-  // which means we can use this to ensure we only clean up once the component really unmounts.
+  // Guard value for cleanup callback, useRef() will remain the same even in
+  // <React.StrictMode/>, which means we can use this to ensure we only clean
+  // up once the component really unmounts.
   const guard = useRef<{ id: string }>();
 
-  // Make sure we always pass the same functions, both to consumers to avoid re-redering whole
-  // trees, but also to useSyncExternalStore() since it will trigger extra logic and maybe re-render
+  // Make sure we always pass the same functions, both to consumers to avoid
+  // re-redering whole trees, but also to useSyncExternalStore() since it will
+  // trigger extra logic and maybe re-render
   const { init, update, subscribe } = useMemo(
     () => ({
       // Note: Always called twice in dev to check return-value not updating
       init: () => storage.initState(id, initialState),
       // Just a normal update
       update: (update: Update<T>) => storage.updateState(id, update),
-      // Subscribe to state-updates, but also drop the state-data if we are unmounting
+      // Subscribe to updates, but also drop the state-data if we are unmounting
       subscribe: (callback: () => void) => {
         const unsubscribe = storage.registerListener(callback, id);
         // Include the id so we can ensure we still drop when they do differ
         const nonce = { id };
 
-        // Overwrite the guard to ensure any currently scheduled drop does not run
+        // Overwrite the guard to cancel any currently scheduled drop
         guard.current = nonce;
 
         return () => {
           unsubscribe();
 
-          // Drop the state outside React's render-loop, this ensures that it is not dropped
-          // prematurely due to <React.StrictMode/> or HMR.
+          // Drop the state outside React's render-loop, this ensures that it
+          // is not dropped prematurely due to <React.StrictMode/> or HMR.
           setTimeout(() => {
-            // If the guard has not been modified, our component has not rendered and unrendered
+            // If the guard has not been modified, our component has not
+            // rendered and unrendered
             // This case is also triggered if we re-render with a new id
             if (
               guard.current === nonce ||

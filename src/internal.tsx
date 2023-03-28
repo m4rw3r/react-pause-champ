@@ -80,10 +80,12 @@ export function resolveStateValue<T>(
   id: string,
   value: T | Promise<T>
 ): StateData<T> {
-  // We cannot be in a state-transition at this point since all entrypoints to this function
-  // ensure that either a) the state does not yet exist, or b) the state is in "value" state.
+  // We cannot be in a state-transition at this point since all entrypoints to
+  // this function ensure that either a) the state does not yet exist, or
+  // b) the state is in "value" state.
 
-  // Special-casing the non-promise case to avoid an extra re-render on state initialization.
+  // Special-casing the non-promise case to avoid an extra re-render on
+  // state initialization.
   if (!isThenable(value)) {
     return setState(storage, id, { kind: StateKind.Value, value });
   }

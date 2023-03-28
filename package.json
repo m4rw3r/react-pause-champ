@@ -29,7 +29,7 @@
   "author": "Martin Wernstål <m4rw3r@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "react": "^16"
+    "react": "^18"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.5",

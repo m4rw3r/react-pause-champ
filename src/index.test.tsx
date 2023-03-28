@@ -1,5 +1,5 @@
 import { Storage, Provider, useWeird } from "./index";
-import { getData } from "./internal";
+import { StateKind, getData } from "./internal";
 import {
   ComponentType,
   Fragment,
@@ -232,7 +232,7 @@ describe("useWeird()", () => {
   it("returns a different property if rendered using a different id", async () => {
     const testObject = { test: "test-object-1" };
     const testObject2 = { test: "test-object-2" };
-    const { container, error, result, rerender } = renderHook(
+    const { error, result, rerender } = renderHook(
       useWeird,
       { wrapper: Wrapper },
       "test",
@@ -306,7 +306,7 @@ describe("Storage.unsuspend()", () => {
     const newObj = { name: "new-obj" };
     const init = jest.fn(() => newObj);
 
-    storage.unsuspend("test-unsuspend", "value", unsuspendedObj);
+    storage.unsuspend("test-unsuspend", StateKind.Value, unsuspendedObj);
     expect(getData(storage).get("test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
@@ -345,7 +345,7 @@ describe("Storage.unsuspend()", () => {
     const newObj = { name: "new-obj" };
     const init = jest.fn(() => newObj);
 
-    storage.unsuspend("test-unsuspend", "value", unsuspendedObj);
+    storage.unsuspend("test-unsuspend", StateKind.Value, unsuspendedObj);
     expect(getData(storage).get("test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,

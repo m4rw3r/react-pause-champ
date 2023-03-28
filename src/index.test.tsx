@@ -10,32 +10,6 @@ import {
 } from "react";
 import { render, act } from "@testing-library/react";
 
-jest.useFakeTimers();
-
-let storage = new Storage();
-
-function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
-  return (
-    <Suspense fallback={null}>
-      <Provider storage={storage}>{children}</Provider>
-    </Suspense>
-  );
-}
-
-function StrictModeWrapper({
-  children,
-}: {
-  children?: ReactNode;
-}): JSX.Element {
-  return (
-    <StrictMode>
-      <Suspense fallback={null}>
-        <Provider storage={storage}>{children}</Provider>
-      </Suspense>
-    </StrictMode>
-  );
-}
-
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
   current: T;
@@ -53,7 +27,34 @@ interface RenderHookResult<P extends any[], T> {
 const TEST_COMPONENT_HTML = /^<p( style="")?>TestComponent<\/p>$/;
 const TEST_COMPONENT_ERROR_HTML = /^<p( style="")?>TestComponent.Error<\/p>$/;
 const SUSPENDED_TEST_COMPONENT_HTML =
-  /^<p style="display: none;">TestComponent<\/p>/;
+  /^(<p style="display: none;">TestComponent<\/p>)?<div>Suspended<\/div>$/;
+const oldConsoleError = console.error;
+
+function Suspended(): JSX.Element {
+  return <div>Suspended</div>;
+}
+
+function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
+  return (
+    <Suspense fallback={<Suspended />}>
+      <Provider storage={storage}>{children}</Provider>
+    </Suspense>
+  );
+}
+
+function StrictModeWrapper({
+  children,
+}: {
+  children?: ReactNode;
+}): JSX.Element {
+  return (
+    <StrictMode>
+      <Suspense fallback={<Suspended />}>
+        <Provider storage={storage}>{children}</Provider>
+      </Suspense>
+    </StrictMode>
+  );
+}
 
 function renderHook<P extends any[], T>(
   renderCallback: (...args: P) => T,
@@ -118,15 +119,68 @@ function renderHook<P extends any[], T>(
     jest.runAllTimers();
   }
 
+  // We have to trigger timers since we clean up late to allow for
+  // <React.StrictMode/> and Hot-Module-Reloading
   jest.runAllTimers();
 
   return { container, result, rerender, error, unmount };
 }
 
+let storage = new Storage();
+
+jest.useFakeTimers();
 // TODO: How to duplicate and run the test with <React.StrictMode/>?
 
 beforeEach(() => {
   storage = new Storage();
+});
+
+afterEach(() => {
+  console.error = oldConsoleError;
+});
+
+describe("new Storage()", () => {
+  it("creates a new empty instance", () => {
+    const s = new Storage();
+
+    expect(s._data).toEqual(new Map());
+    expect(s._listeners).toEqual(new Map());
+  });
+
+  it("reuses an existing Map instance if supplied", () => {
+    const theMap = new Map();
+
+    theMap.set("test", { kind: StateKind.Value, value: "existing value" });
+
+    const s = new Storage(theMap);
+
+    expect(s._data).toBe(theMap);
+    expect(s._listeners).toEqual(new Map());
+  });
+
+  it("copies data from a Storage instance if supplied", () => {
+    const testObject = { name: "test-object" };
+    const initFn = jest.fn(() => testObject);
+
+    const entry = storage.initState("test", initFn);
+
+    expect(entry).toEqual({ kind: StateKind.Value, value: testObject });
+    expect(entry.value).toBe(testObject);
+    expect(initFn.mock.calls).toHaveLength(1);
+
+    const s = new Storage(storage);
+
+    expect(s._data).toEqual(
+      new Map([["test", { kind: StateKind.Value, value: testObject }]])
+    );
+    expect(s._listeners).toEqual(new Map());
+
+    const newEntry = s.initState("test", initFn);
+
+    expect(newEntry).toEqual({ kind: StateKind.Value, value: testObject });
+    expect(newEntry.value).toBe(testObject);
+    expect(initFn.mock.calls).toHaveLength(1);
+  });
 });
 
 describe("useWeird()", () => {
@@ -381,7 +435,7 @@ describe("Storage.unsuspend()", () => {
 
 describe("useWeird().update", () => {
   it("triggers re-render with updated values", async () => {
-    const { error, result } = renderHook(
+    const { container, error, result, unmount } = renderHook(
       useWeird,
       { wrapper: Wrapper },
       "test",
@@ -393,6 +447,7 @@ describe("useWeird().update", () => {
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(1);
     expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getData(storage).get("test")).toEqual({
       kind: "value",
       value: 1,
@@ -405,9 +460,355 @@ describe("useWeird().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
     expect(result.current[0]).toBe(2);
+    expect(result.current[1]).toBe(update);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getData(storage).get("test")).toEqual({
       kind: "value",
       value: 2,
+    });
+
+    unmount();
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(result.current[0]).toBe(2);
+    expect(container.innerHTML).toBe("");
+    expect(getData(storage).get("test")).toBeUndefined();
+  });
+
+  it("triggers re-render with async-updated values", async () => {
+    let resolveWaiting: (error: Error) => void;
+    const waiting: Promise<string> = new Promise((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const dataObj = { name: "data-obj" };
+    const newDataObj = { name: "new-data-obj" };
+    const { container, error, result, unmount } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "test-update-async",
+      dataObj
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    const [, update] = result.current;
+
+    await act(() => update(() => waiting));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async")).toEqual({
+      kind: "pending",
+      value: waiting,
+    });
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting(newDataObj);
+
+      await waiting;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(result.current[0]).toBe(newDataObj);
+    expect(result.current[1]).toBe(update);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async")).toEqual({
+      kind: "value",
+      value: newDataObj,
+    });
+
+    unmount();
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(container.innerHTML).toBe("");
+    expect(getData(storage).get("test-update-async")).toBeUndefined();
+  });
+
+  it("discards async-updated values from unmounted components", async () => {
+    const consoleError = jest.fn();
+
+    console.error = consoleError;
+
+    let resolveWaiting: (error: Error) => void;
+    const waiting: Promise<string> = new Promise((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const dataObj = { name: "data-obj" };
+    const newDataObj = { name: "new-data-obj" };
+    const { container, error, result, unmount } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "test-update-async-unmount",
+      dataObj
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    const [, update] = result.current;
+
+    await act(() => update(() => waiting));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "pending",
+      value: waiting,
+    });
+
+    unmount();
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toBe("");
+    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting(newDataObj);
+
+      await waiting;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      new Error(
+        "Asynchronous state update of 'test-update-async-unmount' completed on dropped data"
+      )
+    );
+    expect(container.innerHTML).toMatch("");
+    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+  });
+
+  it("discards async-updated values from old components", async () => {
+    const consoleError = jest.fn();
+
+    console.error = consoleError;
+
+    let resolveWaiting: (error: Error) => void;
+    const waiting: Promise<string> = new Promise((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const dataObj = { name: "data-obj" };
+    const newDataObj = { name: "new-data-obj" };
+    let { container, error, result, unmount } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "test-update-async-unmount",
+      dataObj
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    const [, update] = result.current;
+
+    await act(() => update(() => waiting));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "pending",
+      value: waiting,
+    });
+
+    unmount();
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toBe("");
+    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+
+    // Render again, with same id
+    ({ container, error, result, unmount } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "test-update-async-unmount",
+      dataObj
+    ));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(container.innerHTML).toMatch("");
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: StateKind.Value,
+      value: dataObj,
+    });
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting(newDataObj);
+
+      await waiting;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      new Error(
+        "Asynchronous state update of 'test-update-async-unmount' completed on resolved data"
+      )
+    );
+    expect(container.innerHTML).toMatch("");
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: StateKind.Value,
+      value: dataObj,
+    });
+  });
+
+  it("discards async-updated values from old components even when pending", async () => {
+    const consoleError = jest.fn();
+
+    console.error = consoleError;
+
+    let resolveWaiting: (obj: { name: string }) => void;
+    let resolveWaiting2: (obj: { name: string }) => void;
+    const waiting: Promise<string> = new Promise((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const waiting2: Promise<string> = new Promise((resolve, _) => {
+      resolveWaiting2 = resolve;
+    });
+    const dataObj = { name: "data-obj" };
+    const newDataObj = { name: "new-data-obj" };
+    let { container, error, result, unmount } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "test-update-async-unmount",
+      dataObj
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    const [, update] = result.current;
+
+    await act(() => update(() => waiting));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "pending",
+      value: waiting,
+    });
+
+    unmount();
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toBe("");
+    expect(getData(storage).get("test-update-async-unmount")).toBeUndefined();
+
+    // Render again, with same id
+    ({ container, error, result, unmount } = renderHook(
+      useWeird,
+      { wrapper: Wrapper },
+      "test-update-async-unmount",
+      () => waiting2
+    ));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(0);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: StateKind.Pending,
+      value: waiting2,
+    });
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting(dataObj);
+
+      await waiting;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(0);
+    expect(consoleError).toHaveBeenCalledWith(
+      new Error(
+        "Asynchronous state update of 'test-update-async-unmount' completed on reinitialized data"
+      )
+    );
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: StateKind.Pending,
+      value: waiting2,
+    });
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting2(newDataObj);
+
+      await waiting2;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(1);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(newDataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(storage).get("test-update-async-unmount")).toEqual({
+      kind: "value",
+      value: newDataObj,
     });
   });
 
@@ -453,6 +854,7 @@ describe("useWeird().update", () => {
     await act(async () => {
       rejectWaiting(rejection);
 
+      // Catch since it is an expected error
       await waiting.catch(() => {});
     });
 
@@ -467,3 +869,5 @@ describe("useWeird().update", () => {
     });
   });
 });
+
+// TODO: Server rendering

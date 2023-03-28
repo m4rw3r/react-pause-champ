@@ -90,6 +90,48 @@ export function setState<T>(
   return entry;
 }
 
+/**
+ * Guarded version of setState() which ensures we do not try to update state
+ * data asynchronously if that data has already been completed or changed. It
+ * will warn and discard the result.
+ *
+ * This can happen when a state is dropped during an asynchronous update, the
+ * state can also be created again during that time, so we make sure that it
+ * is the exact promise we are waiting for before proceeding with the update.
+ */
+export function guardedSetState<T>(
+  storage: Storage,
+  id: string,
+  entry: StateData<T>,
+  pending: Promise<any>
+): StateData<T> {
+  const currentEntry = storage._data.get(id);
+
+  if (
+    !currentEntry ||
+    currentEntry.kind !== StateKind.Pending ||
+    currentEntry.value !== pending
+  ) {
+    const error = new Error(
+      `Asynchronous state update of '${id}' completed on ${
+        currentEntry
+          ? currentEntry.kind === StateKind.Pending &&
+            currentEntry.value !== pending
+            ? "reinitialized"
+            : "resolved"
+          : "dropped"
+      } data`
+    );
+
+    // TODO: How do we properly manage this?
+    console.error(error);
+
+    return error;
+  }
+
+  return setState(storage, id, entry);
+}
+
 export function resolveStateValue<T>(
   storage: Storage,
   id: string,
@@ -106,8 +148,15 @@ export function resolveStateValue<T>(
   }
 
   const pending = value.then(
-    (value) => setState(storage, id, { kind: StateKind.Value, value }),
-    (error) => setState(storage, id, { kind: StateKind.Error, value: error })
+    (value) =>
+      guardedSetState(storage, id, { kind: StateKind.Value, value }, pending),
+    (error) =>
+      guardedSetState(
+        storage,
+        id,
+        { kind: StateKind.Error, value: error },
+        pending
+      )
   );
 
   // TODO: Merge updates when they happen quickly? To prevent re-renders?

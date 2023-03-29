@@ -10,18 +10,24 @@ import {
   Context,
   ResumeInner,
   stateDataIteratorNext,
+  newEntry,
   setState,
-  resolveStateValue,
   triggerListeners,
 } from "./internal";
 
 // TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
 /**
  * State-data entry.
+ *
+ * If the entry is in the "pending" state its content will be replaced with the
+ * appropriate variant once the promise resolves.
+ *
+ * Note: Promise resolution and entry-updates will not be notified through
+ * listeners on Store.
  */
 export type StateEntry<T> =
   | { kind: "value"; value: T }
-  | { kind: "pending"; value: Promise<unknown> }
+  | { kind: "pending"; value: Promise<T> }
   | { kind: "error"; value: Error };
 /**
  * Placeholder for data which has been removed.
@@ -149,53 +155,53 @@ export class Store {
    * Initialize a state if not already initialized.
    */
   initState<T>(id: string, init: Init<T>): StateEntry<T> {
-    const entry = this._data.get(id);
+    let entry = this._data.get(id);
 
-    if (entry) {
-      return entry;
+    if (!entry) {
+      try {
+        entry = newEntry(
+          typeof init === "function" ? (init as InitFn<T>)() : init
+        );
+      } catch (e: any) {
+        // If the init fails, save it and propagate it as an error into the
+        // component, we are now in an error state:
+        entry = { kind: "error", value: e };
+      }
+
+      setState(this, id, entry);
     }
 
-    try {
-      return resolveStateValue(
-        this,
-        id,
-        typeof init === "function" ? (init as InitFn<T>)() : init
-      );
-    } catch (e: any) {
-      // If the init fails, save it and propagate it as an error into the
-      // component, we are now in an error state:
-      return setState(this, id, { kind: "error", value: e });
-    }
+    return entry;
   }
 
   /**
    * Attempt to update an existing state.
    */
   updateState<T>(id: string, update: Update<T>): void {
-    const entry = this._data.get(id);
+    let entry: StateEntry<T> | undefined = this._data.get(id);
 
     if (!entry || entry.kind !== "value") {
       throw new Error(
-        `State update of '${id}' requires an existing value (was '${
+        `State update of '${id}' requires an existing value (was ${
           !entry ? "empty" : entry.kind
-        }').`
+        })`
       );
     }
 
     try {
       // We trigger a re-render through listeners which will then throw for
       // Suspense/ErrorBoundary in the component:
-      resolveStateValue(
-        this,
-        id,
+      entry = newEntry(
         typeof update === "function"
           ? (update as UpdateFn<T>)(entry.value)
           : update
       );
     } catch (e: any) {
       // If the update fails, propagate it as an error into the component
-      setState(this, id, { kind: "error", value: e });
+      entry = { kind: "error", value: e };
     }
+
+    setState(this, id, entry);
   }
 
   /**
@@ -236,6 +242,9 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
   );
 }
 
+// TODO: Any way of detecting if we are trying to reuse data initialized in
+// another component? this can cause some nasty intermittent errors if
+// some components are unmounting
 /**
  * Create or use a state instance with the given id.
  */

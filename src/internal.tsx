@@ -49,88 +49,82 @@ export function getData(store: Store): Map<string, StateEntry<unknown>> {
 }
 
 /**
+ * Assigns a StateEntry to the slot on `store` identified by `id`.
+ *
+ * If the created StateEntry has been replaced before the asynchronous action
+ * has completed a warning will be printed and the result discarded.
+ *
+ * This can happen when a state is dropped during an asynchronous update, the
+ * state can also be created again during that time, so we make sure that it
+ * is the exact promise we are waiting for before proceeding with the update.
+ *
  * @internal
  */
 export function setState<T>(
   store: Store,
   id: string,
   entry: StateEntry<T>
-): StateEntry<T> {
-  store._data.set(id, entry);
-  triggerListeners(store, id, entry);
+): void {
+  if (entry.kind === "pending") {
+    // If we replaced the StateEntry at the slot we set to, print a warning.
+    const verifyCurrentStateEntry = () => {
+      const currentEntry = store._data.get(id);
 
-  return entry;
-}
+      if (currentEntry !== entry) {
+        // We cannot throw here, since that will be caught by <React.Suspense/>
+        // and ignored, and therefore it will not be printed.
+        console.error(
+          new Error(
+            `Asynchronous state update of '${id}' completed after ${
+              currentEntry ? "being replaced" : "drop"
+            }`
+          )
+        );
+      }
+    };
 
-/**
- * @internal
- *
- * Guarded version of setState() which ensures we do not try to update state
- * data asynchronously if that data has already been completed or changed. It
- * will warn and discard the result.
- *
- * This can happen when a state is dropped during an asynchronous update, the
- * state can also be created again during that time, so we make sure that it
- * is the exact promise we are waiting for before proceeding with the update.
- */
-export function resolveState<T>(
-  store: Store,
-  id: string,
-  entry: StateEntry<T>,
-  pending: Promise<any>
-): StateEntry<T> {
-  const currentEntry = store._data.get(id);
-
-  if (
-    !currentEntry ||
-    currentEntry.kind !== "pending" ||
-    currentEntry.value !== pending
-  ) {
-    const error = new Error(
-      `Asynchronous state update of '${id}' completed on ${
-        currentEntry
-          ? currentEntry.kind === "pending" && currentEntry.value !== pending
-            ? "reinitialized"
-            : "resolved"
-          : "dropped"
-      } data`
-    );
-
-    // TODO: How do we properly manage this?
-    console.error(error);
-
-    throw error;
+    // Replace the pending value to avoid triggering
+    // unhandled promise rejection warning/exit:
+    entry.value = entry.value.finally(verifyCurrentStateEntry);
   }
 
-  return setState(store, id, entry);
+  store._data.set(id, entry);
+  triggerListeners(store, id, entry);
 }
 
 /**
+ * Creates a new StateEntry from the given maybe-promise. If it is a promise
+ * it will be modified upon promise resolution/rejection into an appropriate
+ * state.
+ *
  * @internal
  */
-export function resolveStateValue<T>(
-  store: Store,
-  id: string,
-  value: T | Promise<T>
-): StateEntry<T> {
-  // We cannot be in a state-transition at this point since all entrypoints to
-  // this function ensure that either a) the state does not yet exist, or
-  // b) the state is in "value" state.
-
+export function newEntry<T>(value: Promise<T> | T): StateEntry<T> {
   // Special-casing the non-promise case to avoid an extra re-render on
   // state initialization.
   if (!isThenable(value)) {
-    return setState(store, id, { kind: "value", value });
+    return { kind: "value", value };
   }
 
-  const pending: Promise<StateEntry<T>> = value.then(
-    (value) => resolveState(store, id, { kind: "value", value }, pending),
-    (error) => resolveState(store, id, { kind: "error", value: error }, pending)
-  );
+  const suspendable: StateEntry<T> = {
+    kind: "pending",
+    value: value.then(
+      (value) => {
+        suspendable.kind = "value";
+        suspendable.value = value;
 
-  // TODO: Merge updates when they happen quickly? To prevent re-renders?
-  // Save for await/suspend
-  return setState<T>(store, id, { kind: "pending", value: pending });
+        return value;
+      },
+      (error) => {
+        suspendable.kind = "error";
+        suspendable.value = error;
+
+        throw error;
+      }
+    ),
+  };
+
+  return suspendable;
 }
 
 /**
@@ -170,7 +164,7 @@ export function stateDataIteratorNext(
 
   let result: StateEntryIterator | null = null;
   let suspender: Promise<any> | null =
-    pending.length > 0 ? Promise.any(pending).then(done, done) : null;
+    pending.length > 0 ? Promise.any(pending).finally(done) : null;
 
   function done(): void {
     suspender = null;

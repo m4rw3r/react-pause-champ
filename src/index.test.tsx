@@ -602,10 +602,10 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed on dropped data"
+        "Asynchronous state update of 'test-update-async-unmount' completed after drop"
       )
     );
-    expect(container.innerHTML).toMatch("");
+    expect(container.innerHTML).toEqual("");
     expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
   });
 
@@ -672,7 +672,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toEqual([]);
-    expect(container.innerHTML).toMatch("");
+    expect(container.innerHTML).toEqual("<p>TestComponent</p>");
     expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
@@ -689,10 +689,10 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed on resolved data"
+        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced"
       )
     );
-    expect(container.innerHTML).toMatch("");
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
@@ -789,7 +789,7 @@ describe("useChamp().update", () => {
     expect(result2.all).toHaveLength(0);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed on reinitialized data"
+        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced"
       )
     );
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
@@ -815,6 +815,86 @@ describe("useChamp().update", () => {
     expect(getData(store).get("test-update-async-unmount")).toEqual({
       kind: "value",
       value: newDataObj,
+    });
+  });
+
+  it("discards async-updated values from old id", async () => {
+    const consoleError = jest.fn();
+
+    console.error = consoleError;
+
+    let resolveWaiting: (obj: { name: string }) => void;
+    const waiting = new Promise((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const dataObj = { name: "data-obj" };
+    const newDataObj = { name: "new-data-obj" };
+    let { container, error, result, rerender } = renderHook(
+      useChamp,
+      { wrapper: Wrapper },
+      "test-update-async-old",
+      dataObj
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(store).get("test-update-async-old")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    const [, update] = result.current;
+
+    await act(() => update(() => waiting));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getData(store).get("test-update-async-old")).toEqual({
+      kind: "pending",
+      value: waiting,
+    });
+
+    rerender("test-update-async-new", dataObj);
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(store).get("test-update-async-old")).toBeUndefined();
+    expect(getData(store).get("test-update-async-new")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting(newDataObj);
+
+      await waiting;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(consoleError).toHaveBeenCalledWith(
+      new Error(
+        "Asynchronous state update of 'test-update-async-old' completed after drop"
+      )
+    );
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(store).get("test-update-async-old")).toBeUndefined();
+    expect(getData(store).get("test-update-async-new")).toEqual({
+      kind: "value",
+      value: dataObj,
     });
   });
 

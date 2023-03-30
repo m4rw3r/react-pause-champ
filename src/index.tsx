@@ -11,6 +11,7 @@ import {
   ResumeInner,
   stateDataIteratorNext,
   newEntry,
+  unwrapEntry,
   setState,
   triggerListeners,
 } from "./internal";
@@ -308,13 +309,8 @@ export function useChamp<T>(
   );
 
   // TODO: Maybe different server snapshot?
-  const entry = useSyncExternalStore(subscribe, init, init);
+  // Unwrap at end once we have initialized all hooks
+  const value = unwrapEntry(useSyncExternalStore(subscribe, init, init));
 
-  // Throw at end once we have initialized all hooks
-  if (entry.kind !== "value") {
-    // Error or Suspense-Promise to throw
-    throw entry.value;
-  }
-
-  return [entry.value, update];
+  return [value, update];
 }

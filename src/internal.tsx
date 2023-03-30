@@ -128,6 +128,21 @@ export function newEntry<T>(value: Promise<T> | T): StateEntry<T> {
 }
 
 /**
+ * Extracts the contents of the entry if it is a value, otherwise an Error or
+ * Promise will be thrown.
+ *
+ * @internal
+ */
+export function unwrapEntry<T>(entry: StateEntry<T>): T {
+  if (entry.kind !== "value") {
+    // Error or Suspense-Promise to throw
+    throw entry.value;
+  }
+
+  return entry.value;
+}
+
+/**
  * @internal
  */
 export function triggerListeners<T>(
@@ -162,24 +177,17 @@ export function stateDataIteratorNext(
     items.set(k, v);
   }
 
-  let result: StateEntryIterator | null = null;
-  let suspender: Promise<any> | null =
-    pending.length > 0 ? Promise.any(pending).finally(done) : null;
-
-  function done(): void {
-    suspender = null;
-    result = stateDataIteratorNext(store, emitted);
+  function nextIterator(): StateEntryIterator {
+    return stateDataIteratorNext(store, emitted);
   }
+
+  const entry = newEntry(
+    pending.length > 0 ? Promise.any(pending).then(nextIterator) : null
+  );
 
   return {
     items,
-    next() {
-      if (suspender) {
-        throw suspender;
-      }
-
-      return result;
-    },
+    next: () => unwrapEntry(entry),
   };
 }
 

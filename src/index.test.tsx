@@ -898,6 +898,45 @@ describe("useChamp().update", () => {
     });
   });
 
+  it("throws errors", async () => {
+    const testError = new Error("Error from update test callback");
+    const { container, error, result } = renderHook(
+      useChamp,
+      { wrapper: Wrapper },
+      "update-throw-test",
+      "init"
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe("init");
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getData(store).get("update-throw-test")).toEqual({
+      kind: "value",
+      value: "init",
+    });
+
+    const [, update] = result.current;
+
+    await act(() =>
+      update(() => {
+        throw testError;
+      })
+    );
+
+    expect(error.all).toHaveLength(1);
+    expect(result.all).toHaveLength(1);
+    expect(error.current).toBe(testError);
+    expect(result.current).toBeUndefined();
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_ERROR_HTML);
+    expect(getData(store).get("update-throw-test")).toEqual({
+      kind: "error",
+      value: testError,
+    });
+  });
+
   it("throws async errors", async () => {
     // This does not throw when expected since we need to have useEffect
     let rejectWaiting: (error: Error) => void;

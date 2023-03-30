@@ -1,4 +1,4 @@
-import { Fragment, Suspense, createElement, useContext } from "../react";
+import { Fragment, Suspense, createElement, useContext } from "react";
 
 import { Context } from "./Provider";
 import { Entry, newEntry, unwrapEntry } from "../entry";

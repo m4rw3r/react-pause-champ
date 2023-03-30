@@ -1,4 +1,4 @@
-import { ReactNode, createContext, createElement } from "../react";
+import { ReactNode, createContext, createElement } from "react";
 
 import { Store } from "../store";
 

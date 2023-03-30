@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useSyncExternalStore } from "./react";
+import { useContext, useMemo, useRef, useSyncExternalStore } from "react";
 import { unwrapEntry } from "./entry";
 import { Context } from "./components/Provider";
 

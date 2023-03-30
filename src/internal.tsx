@@ -65,7 +65,7 @@ export function setState<T>(
   id: string,
   entry: StateEntry<T>
 ): void {
-  if (entry.kind === "pending") {
+  if (process.env.NODE_ENV !== "production" && entry.kind === "pending") {
     // If we replaced the StateEntry at the slot we set to, print a warning.
     const verifyCurrentStateEntry = () => {
       const currentEntry = store._data.get(id);

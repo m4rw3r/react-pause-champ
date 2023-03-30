@@ -1,6 +1,7 @@
 import { build } from "esbuild";
 
 await build({
+  platform: "neutral",
   entryPoints: ["src/index.tsx"],
   bundle: true,
   outdir: "dist",

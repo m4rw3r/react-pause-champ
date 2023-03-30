@@ -1,5 +1,3 @@
-import { Store, Provider, useChamp } from "./index";
-import { getData } from "./internal";
 import {
   ComponentType,
   Fragment,
@@ -9,6 +7,9 @@ import {
   createElement,
 } from "react";
 import { render, act } from "@testing-library/react";
+
+import { Store, Provider, useChamp } from "./index";
+import { getData } from "./store";
 
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
@@ -137,50 +138,6 @@ beforeEach(() => {
 
 afterEach(() => {
   console.error = oldConsoleError;
-});
-
-describe("new Store()", () => {
-  it("creates a new empty instance", () => {
-    const s = new Store();
-
-    expect(s._data).toEqual(new Map());
-    expect(s._listeners).toEqual(new Map());
-  });
-
-  it("reuses an existing Map instance if supplied", () => {
-    const theMap = new Map();
-
-    theMap.set("test", { kind: "value", value: "existing value" });
-
-    const s = new Store(theMap);
-
-    expect(s._data).toBe(theMap);
-    expect(s._listeners).toEqual(new Map());
-  });
-
-  it("copies data from a Store instance if supplied", () => {
-    const testObject = { name: "test-object" };
-    const initFn = jest.fn(() => testObject);
-
-    const entry = store.initState("test", initFn);
-
-    expect(entry).toEqual({ kind: "value", value: testObject });
-    expect(entry.value).toBe(testObject);
-    expect(initFn.mock.calls).toHaveLength(1);
-
-    const s = new Store(store);
-
-    expect(s._data).toEqual(
-      new Map([["test", { kind: "value", value: testObject }]])
-    );
-    expect(s._listeners).toEqual(new Map());
-
-    const newEntry = s.initState("test", initFn);
-
-    expect(newEntry).toEqual({ kind: "value", value: testObject });
-    expect(newEntry.value).toBe(testObject);
-    expect(initFn.mock.calls).toHaveLength(1);
-  });
 });
 
 describe("useChamp()", () => {

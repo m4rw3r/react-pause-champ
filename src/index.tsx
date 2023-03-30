@@ -129,7 +129,6 @@ export class Store {
       throw new Error(`State '${id}' has already been initialized.`);
     }
 
-    // TODO: Any use here trying to trigger listeners?
     this._data.set(id, { kind, value });
   }
 

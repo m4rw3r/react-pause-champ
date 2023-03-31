@@ -6,6 +6,7 @@ export type {
   Update,
   UpdateFn,
   UpdateCallback,
+  UseChampOptions,
 } from "./useChamp";
 
 export { Store } from "./store";

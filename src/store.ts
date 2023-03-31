@@ -22,6 +22,21 @@ export type Listener<T> = (
 export type UnregisterFn = () => void;
 
 /**
+ * @internal
+ */
+export type EntryMeta = {
+  persistent: boolean;
+  componentId: object;
+};
+
+/**
+ * Object which is statically guaranteed to be empty.
+ *
+ * @internal
+ */
+export type EmptyObject = { [n: string]: never };
+
+/**
  * Container for application state data.
  */
 export class Store {
@@ -34,6 +49,10 @@ export class Store {
    * @internal
    */
   readonly _listeners: Map<string, Set<Listener<any>>> = new Map();
+  /**
+   * @internal
+   */
+  _meta?: Map<string, EntryMeta>;
 
   constructor(data?: ResumeData | Store | null) {
     this._data =
@@ -72,69 +91,6 @@ export class Store {
         this._listeners.get(id)!.delete(listener);
       }
     };
-  }
-
-  /**
-   * Initialize a state if not already initialized.
-   */
-  initState<T>(id: string, init: Init<T>): Entry<T> {
-    let entry = this._data.get(id);
-
-    if (!entry) {
-      try {
-        entry = newEntry(
-          typeof init === "function" ? (init as InitFn<T>)() : init
-        );
-      } catch (e: any) {
-        // If the init fails, save it and propagate it as an error into the
-        // component, we are now in an error state:
-        entry = { kind: "error", value: e };
-      }
-
-      setState(this, id, entry);
-    }
-
-    return entry;
-  }
-
-  /**
-   * Attempt to update an existing state.
-   */
-  updateState<T>(id: string, update: Update<T>): void {
-    let entry: Entry<T> | undefined = this._data.get(id);
-
-    if (!entry || entry.kind !== "value") {
-      throw new Error(
-        `State update of '${id}' requires an existing value (was ${
-          !entry ? "empty" : entry.kind
-        })`
-      );
-    }
-
-    try {
-      // We trigger a re-render through listeners which will then throw for
-      // Suspense/ErrorBoundary in the component:
-      entry = newEntry(
-        typeof update === "function"
-          ? (update as UpdateFn<T>)(entry.value)
-          : update
-      );
-    } catch (e: any) {
-      // If the update fails, propagate it as an error into the component
-      entry = { kind: "error", value: e };
-    }
-
-    setState(this, id, entry);
-  }
-
-  /**
-   * Drop the state identified by `id`, will stop any active promises from
-   * updating after drop.
-   */
-  dropState(id: string) {
-    this._data.delete(id);
-    // TODO: Maybe add old value?
-    triggerListeners(this, id, { kind: "drop", value: null });
   }
 }
 
@@ -186,6 +142,81 @@ export function setState<T>(store: Store, id: string, entry: Entry<T>): void {
 }
 
 /**
+ * Initialize a state if not already initialized.
+ *
+ * @internal
+ */
+export function initState<T>(
+  store: Store,
+  id: string,
+  init: Init<T>
+): Entry<T> {
+  let entry = store._data.get(id);
+
+  if (!entry) {
+    try {
+      entry = newEntry(
+        typeof init === "function" ? (init as InitFn<T>)() : init
+      );
+    } catch (e: any) {
+      // If the init fails, save it and propagate it as an error into the
+      // component, we are now in an error state:
+      entry = { kind: "error", value: e };
+    }
+
+    setState(store, id, entry);
+  }
+
+  return entry;
+}
+
+/**
+ * Attempt to update an existing state.
+ */
+export function updateState<T>(
+  store: Store,
+  id: string,
+  update: Update<T>
+): void {
+  let entry: Entry<T> | undefined = store._data.get(id);
+
+  if (!entry || entry.kind !== "value") {
+    throw new Error(
+      `State update of '${id}' requires an existing value (was ${
+        !entry ? "empty" : entry.kind
+      })`
+    );
+  }
+
+  try {
+    // We trigger a re-render through listeners which will then throw for
+    // Suspense/ErrorBoundary in the component:
+    entry = newEntry(
+      typeof update === "function"
+        ? (update as UpdateFn<T>)(entry.value)
+        : update
+    );
+  } catch (e: any) {
+    // If the update fails, propagate it as an error into the component
+    entry = { kind: "error", value: e };
+  }
+
+  setState(store, id, entry);
+}
+
+/**
+ * Drop the state identified by `id`, will stop any active promises from
+ * updating after drop.
+ *
+ * @internal
+ */
+export function dropState(store: Store, id: string) {
+  store._data.delete(id);
+  // TODO: Maybe add old value?
+  triggerListeners(store, id, { kind: "drop", value: null });
+}
+
+/**
  * @internal
  */
 export function triggerListeners<T>(
@@ -195,5 +226,46 @@ export function triggerListeners<T>(
 ): void {
   for (const f of store._listeners.get(id) || []) {
     f(id, entry);
+  }
+}
+
+/**
+ * Verfies metadata for persistent and component identity in developer-mode.
+ *
+ * @internal
+ */
+export function checkMeta(
+  store: Store,
+  id: string,
+  persistent: boolean,
+  componentId: EmptyObject
+) {
+  if (!store._meta) {
+    store._meta = new Map();
+  }
+
+  const meta = store._meta!.get(id);
+
+  if (meta) {
+    if (meta.persistent !== persistent) {
+      throw new Error(
+        `State '${id}' is ${meta.persistent ? "" : "not "}persistent`
+      );
+    }
+
+    if (!meta.persistent && meta.componentId !== componentId) {
+      throw new Error(`State '${id}' is already mounted in another component`);
+    }
+  } else {
+    store._meta!.set(id, { persistent, componentId });
+  }
+}
+
+/**
+ * @internal
+ */
+export function dropMeta(store: Store, id: string): void {
+  if (store._meta) {
+    store._meta.delete(id);
   }
 }

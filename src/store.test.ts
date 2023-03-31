@@ -1,4 +1,4 @@
-import { Store } from "./index";
+import { Store, initState } from "./store";
 
 describe("new Store()", () => {
   it("creates a new empty instance", () => {
@@ -24,7 +24,7 @@ describe("new Store()", () => {
     const testObject = { name: "test-object" };
     const initFn = jest.fn(() => testObject);
 
-    const entry = store.initState("test", initFn);
+    const entry = initState(store, "test", initFn);
 
     expect(entry).toEqual({ kind: "value", value: testObject });
     expect(entry.value).toBe(testObject);
@@ -37,7 +37,7 @@ describe("new Store()", () => {
     );
     expect(s._listeners).toEqual(new Map());
 
-    const newEntry = s.initState("test", initFn);
+    const newEntry = initState(s, "test", initFn);
 
     expect(newEntry).toEqual({ kind: "value", value: testObject });
     expect(newEntry.value).toBe(testObject);

@@ -1,18 +1,21 @@
 import {
+  MutableRefObject,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
 } from "react";
-import { unwrapEntry } from "./entry";
 import { Context } from "./components/Provider";
+import { Entry, newEntry, unwrapEntry } from "./entry";
 import {
-  initState,
-  updateState,
-  dropState,
-  checkMeta,
-  dropMeta,
+  Store,
+  Unregister,
+  getEntry,
+  setEntry,
+  restoreEntryFromSnapshot,
+  dropEntry,
+  checkEntry,
 } from "./store";
 
 /**
@@ -54,6 +57,14 @@ export interface UseChampOptions {
 }
 
 /**
+ * Guard preventing multiple destructors from running based on object identity
+ * as well as the stored id.
+ */
+interface Guard {
+  id: string;
+}
+
+/**
  * Create or use a state instance with the given id.
  */
 export function useChamp<T>(
@@ -64,7 +75,7 @@ export function useChamp<T>(
   const store = useContext(Context);
 
   if (!store) {
-    throw new Error(`useChamp() must be inside a <Provider/>`);
+    throw new Error(`useChamp() must be inside a <Provider/>.`);
   }
 
   const { persistent = false } = options;
@@ -88,14 +99,14 @@ export function useChamp<T>(
         cid.current = {};
       }
 
-      checkMeta(store, id, persistent, cid.current);
+      checkEntry(store, id, persistent, cid.current);
     }, [store, id, persistent]);
   }
 
   // Guard value for cleanup callback, useRef() will remain the same even in
   // <React.StrictMode/>, which means we can use this to ensure we only clean
   // up once the component really unmounts.
-  const guard = useRef<{ id: string }>();
+  const guard = useRef<Guard>();
 
   // Make sure we always pass the same functions, both to consumers to avoid
   // re-redering whole trees, but also to useSyncExternalStore() since it will
@@ -103,63 +114,10 @@ export function useChamp<T>(
   const [getSnapshot, getServerSnapshot, update, subscribe] = useMemo(
     () => [
       () => initState(store, id, initialState),
-      () => {
-        // This callback should only be triggered for hydrating components,
-        // which means they MUST have a server-snapshot:
-        if (!store._snapshot) {
-          throw new Error(`Expected store to have a server-snapshot`);
-        }
-
-        const value = store._snapshot.get(id);
-
-        if (!value) {
-          throw new Error(`Server-snapshot missing '${id}'`);
-        }
-
-        // TODO: We probably need to populate the store._data with the snapshotted entry here
-
-        return value;
-      },
+      () => restoreEntryFromSnapshot(store, id),
       (update: Update<T>) => updateState(store, id, update),
-      (callback: () => void) => {
-        // Subscribe to updates, but also drop the state-data if we are unmounting
-        const unsubscribe = store.listen(id, callback);
-        // Include the id so we can ensure we still drop when they do differ
-        const nonce = { id };
-
-        // Overwrite the guard to cancel any currently scheduled drop
-        guard.current = nonce;
-
-        const drop = (): void => {
-          unsubscribe();
-
-          // Drop the state outside React's render-loop, this ensures that
-          // it is not dropped prematurely due to <React.StrictMode/> or
-          // Hot-Module-Reloading.
-          setTimeout(() => {
-            // If the guard has not been modified, our component has not
-            // unmounted an then immediately been mounted again which means
-            // this is the last cleanup.
-
-            // This case is also triggered if we re-render with a new id to
-            // guarantee the old id gets cleaned up.
-            if (
-              guard.current === nonce ||
-              (guard.current && guard.current.id !== id)
-            ) {
-              if (process.env.NODE_ENV !== "production") {
-                dropMeta(store, id);
-              }
-
-              dropState(store, id);
-            }
-          }, 0);
-        };
-
-        // If we are a persistent state, just return the plain unsubscribe
-        // since we will not drop the state entry.
-        return persistent ? unsubscribe : drop;
-      },
+      (callback: () => void) =>
+        subscribeState(store, id, persistent, callback, guard),
     ],
     [store, id, persistent]
   );
@@ -170,4 +128,114 @@ export function useChamp<T>(
   );
 
   return [value, update];
+}
+
+/**
+ * Initialize a state if not already initialized.
+ *
+ * @internal
+ */
+export function initState<T>(
+  store: Store,
+  id: string,
+  init: Init<T>
+): Entry<T> {
+  let entry: Entry<T> | undefined = getEntry(store, id);
+
+  if (!entry) {
+    try {
+      entry = newEntry(
+        typeof init === "function" ? (init as InitFn<T>)() : init
+      );
+    } catch (e: any) {
+      // If the init fails, save it and propagate it as an error into the
+      // component, we are now in an error state:
+      entry = { kind: "error", value: e };
+    }
+
+    setEntry(store, id, entry);
+  }
+
+  return entry;
+}
+
+/**
+ * Attempt to update an existing state entry.
+ *
+ * @internal
+ */
+export function updateState<T>(
+  store: Store,
+  id: string,
+  update: Update<T>
+): void {
+  let entry = getEntry<T>(store, id);
+
+  if (!entry || entry.kind !== "value") {
+    throw new Error(
+      `State update of '${id}' requires a value (was ${
+        !entry ? "empty" : entry.kind
+      }).`
+    );
+  }
+
+  try {
+    // We trigger a re-render through listeners which will then throw for
+    // Suspense/ErrorBoundary in the component:
+    entry = newEntry(
+      typeof update === "function"
+        ? (update as UpdateFn<T>)(entry.value)
+        : update
+    );
+  } catch (e: any) {
+    // If the update fails, propagate it as an error into the component
+    entry = { kind: "error", value: e };
+  }
+
+  setEntry(store, id, entry);
+}
+
+/**
+ * @internal
+ */
+function subscribeState(
+  store: Store,
+  id: string,
+  persistent: boolean,
+  callback: Unregister,
+  guard: MutableRefObject<Guard | undefined>
+): Unregister {
+  // Subscribe to updates, but also drop the state-data if we are unmounting
+  const unsubscribe = store.listen(id, callback);
+  // Include the id so we can ensure we still drop when they do differ
+  const nonce = { id };
+
+  // Overwrite the guard to cancel any currently scheduled drop
+  guard.current = nonce;
+
+  const drop = (): void => {
+    unsubscribe();
+
+    // Drop the state outside React's render-loop, this ensures that
+    // it is not dropped prematurely due to <React.StrictMode/> or
+    // Hot-Module-Reloading.
+    setTimeout(() => {
+      // If the guard has not been modified, our component has not
+      // unmounted an then immediately been mounted again which means
+      // this is the last cleanup.
+
+      // This case is also triggered if we re-render with a new id to
+      // guarantee the old id gets cleaned up.
+      if (
+        guard.current === nonce ||
+        (guard.current && guard.current.id !== id)
+      ) {
+        dropEntry(store, id);
+      }
+    }, 0);
+  };
+
+  // If we are a persistent state, just return the plain unsubscribe
+  // since we will not drop the state entry.
+  return persistent ? unsubscribe : drop;
 }

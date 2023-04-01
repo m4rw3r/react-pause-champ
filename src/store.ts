@@ -1,10 +1,9 @@
-import { Entry, newEntry } from "./entry";
-import { Init, InitFn, Update, UpdateFn } from "./useChamp";
+import { Entry } from "./entry";
 
 /**
  * Placeholder for data which has been removed.
  */
-export type DroppedEntry = { kind: "drop"; value: null };
+export type DroppedEntry = { kind: "drop"; value: undefined };
 /**
  * A listener for state-data updates.
  */
@@ -15,14 +14,14 @@ export type Listener<T> = (
 /**
  * Function used to unregister a listener.
  */
-export type UnregisterFn = () => void;
+export type Unregister = () => void;
 
 /**
  * @internal
  */
 export type EntryMeta = {
   persistent: boolean;
-  componentId: object;
+  cid: object;
 };
 
 /**
@@ -57,14 +56,15 @@ export class Store {
    *
    * @internal
    */
-  _snapshot?: Map<string, Entry<any> | null>;
+  _snapshot?: Map<string, Entry<any> | undefined>;
 
+  // TODO: Maybe make internal too? Or what are the uses for developer-mode?
   /**
    * Listen to state-updates / errors.
    *
    * Call the returned function to unregister.
    */
-  listen<T>(id: string, listener: Listener<T>): UnregisterFn {
+  listen<T>(id: string, listener: Listener<T>): Unregister {
     if (!this._listeners.has(id)) {
       this._listeners.set(id, new Set());
     }
@@ -89,7 +89,7 @@ export class Store {
  * @see React.renderToPipeableStream
  */
 export function fromSnapshot(
-  snapshot: Map<string, Entry<string> | null>
+  snapshot: Map<string, Entry<string> | undefined>
 ): Store {
   const store = new Store();
 
@@ -101,8 +101,15 @@ export function fromSnapshot(
 /**
  * @internal
  */
-export function getData(store: Store): Map<string, Entry<unknown>> {
-  return store._data;
+export function getEntry<T>(store: Store, id: string): Entry<T> | undefined {
+  return store._data.get(id);
+}
+
+/**
+ * @internal
+ */
+export function getSnapshot(store: Store, id: string): Entry<any> | undefined {
+  return store._snapshot?.get(id);
 }
 
 /**
@@ -117,7 +124,7 @@ export function getData(store: Store): Map<string, Entry<unknown>> {
  *
  * @internal
  */
-export function setState<T>(store: Store, id: string, entry: Entry<T>): void {
+export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
   if (process.env.NODE_ENV !== "production" && entry.kind === "suspended") {
     // If we replaced the Entry at the slot we set to, print a warning.
     const verifyCurrentEntry = () => {
@@ -129,8 +136,8 @@ export function setState<T>(store: Store, id: string, entry: Entry<T>): void {
         console.error(
           new Error(
             `Asynchronous state update of '${id}' completed after ${
-              currentEntry ? "being replaced" : "drop"
-            }`
+              currentEntry ? "being replaced" : "unmount"
+            }.`
           )
         );
       }
@@ -146,66 +153,30 @@ export function setState<T>(store: Store, id: string, entry: Entry<T>): void {
 }
 
 /**
- * Initialize a state if not already initialized.
- *
  * @internal
  */
-export function initState<T>(
-  store: Store,
-  id: string,
-  init: Init<T>
-): Entry<T> {
-  let entry = store._data.get(id);
-
-  if (!entry) {
-    try {
-      entry = newEntry(
-        typeof init === "function" ? (init as InitFn<T>)() : init
-      );
-    } catch (e: any) {
-      // If the init fails, save it and propagate it as an error into the
-      // component, we are now in an error state:
-      entry = { kind: "error", value: e };
-    }
-
-    setState(store, id, entry);
+export function restoreEntryFromSnapshot(store: Store, id: string): Entry<any> {
+  // This callback should only be triggered for hydrating components,
+  // which means they MUST have a server-snapshot:
+  if (!store._snapshot) {
+    throw new Error(`Server-snapshot is missing.`);
   }
 
-  return entry;
-}
+  const value = getSnapshot(store, id);
 
-/**
- * Attempt to update an existing state.
- */
-export function updateState<T>(
-  store: Store,
-  id: string,
-  update: Update<T>
-): void {
-  let entry: Entry<T> | undefined = store._data.get(id);
-
-  if (!entry || entry.kind !== "value") {
-    throw new Error(
-      `State update of '${id}' requires an existing value (was ${
-        !entry ? "empty" : entry.kind
-      })`
-    );
+  if (!value) {
+    throw new Error(`Server-snapshot is missing '${id}'.`);
   }
 
-  try {
-    // We trigger a re-render through listeners which will then throw for
-    // Suspense/ErrorBoundary in the component:
-    entry = newEntry(
-      typeof update === "function"
-        ? (update as UpdateFn<T>)(entry.value)
-        : update
-    );
-  } catch (e: any) {
-    // If the update fails, propagate it as an error into the component
-    entry = { kind: "error", value: e };
+  // Restore snapshot if not done already, another persistent useChamp() could
+  // have already restored:
+  if (!store._data.has(id)) {
+    store._data.set(id, value);
   }
 
-  setState(store, id, entry);
+  // We do not trigger any listeners here, since listeners are installed after
+  // restoration is done
+  return value;
 }
 
 /**
@@ -214,10 +185,15 @@ export function updateState<T>(
  *
  * @internal
  */
-export function dropState(store: Store, id: string) {
+export function dropEntry(store: Store, id: string) {
+  if (process.env.NODE_ENV !== "production") {
+    dropMeta(store, id);
+  }
+
   store._data.delete(id);
+  store._snapshot?.delete(id);
   // TODO: Maybe add old value?
-  triggerListeners(store, id, { kind: "drop", value: null });
+  triggerListeners(store, id, { kind: "drop", value: undefined });
 }
 
 /**
@@ -238,11 +214,11 @@ export function triggerListeners<T>(
  *
  * @internal
  */
-export function checkMeta(
+export function checkEntry(
   store: Store,
   id: string,
   persistent: boolean,
-  componentId: EmptyObject
+  cid: EmptyObject
 ) {
   if (!store._meta) {
     store._meta = new Map();
@@ -253,15 +229,15 @@ export function checkMeta(
   if (meta) {
     if (meta.persistent !== persistent) {
       throw new Error(
-        `State '${id}' is ${meta.persistent ? "" : "not "}persistent`
+        `State '${id}' is ${meta.persistent ? "" : "not "}persistent.`
       );
     }
 
-    if (!meta.persistent && meta.componentId !== componentId) {
-      throw new Error(`State '${id}' is already mounted in another component`);
+    if (!meta.persistent && meta.cid !== cid) {
+      throw new Error(`State '${id}' is already mounted in another component.`);
     }
   } else {
-    store._meta.set(id, { persistent, componentId });
+    store._meta.set(id, { persistent, cid });
   }
 }
 

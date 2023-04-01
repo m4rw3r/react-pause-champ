@@ -12,7 +12,7 @@ export interface ResumeProps {
    * Java-Script global variable/path to store the server snapshot,
    * eg. `window.store`.
    */
-  snapshotIdentifier: string;
+  identifier: string;
 }
 
 /**
@@ -26,7 +26,7 @@ export interface ResumeProps {
  * // server
  * <Provider store={store}>
  *   <App />
- *   <Resume snapshotIdentifier="window.snapshot" />
+ *   <Resume identifier="window.snapshot" />
  * </Provider>
  *
  * // client
@@ -41,16 +41,16 @@ export interface ResumeProps {
  * );
  * ```
  */
-export function Resume({ snapshotIdentifier }: ResumeProps): JSX.Element {
+export function Resume({ identifier }: ResumeProps): JSX.Element {
   const store = useContext(Context);
 
   if (!store) {
-    throw new Error(`<Weird.Resume/> must be inside a <Weird.Provider/>`);
+    throw new Error(`<Resume/> must be inside a <Provider/>.`);
   }
 
   return (
     <ResumeInner
-      snapshotIdentifier={snapshotIdentifier}
+      identifier={identifier}
       iter={stateDataIteratorNext(store)}
       createMap
     />
@@ -61,7 +61,7 @@ export function Resume({ snapshotIdentifier }: ResumeProps): JSX.Element {
  * @internal
  */
 export interface ResumeInnerProps {
-  snapshotIdentifier: string;
+  identifier: string;
   iter: EntryIterator;
   createMap?: boolean;
 }
@@ -70,7 +70,7 @@ export interface ResumeInnerProps {
  * @internal
  */
 export interface ResumeNextProps {
-  snapshotIdentifier: string;
+  identifier: string;
   iter: EntryIterator;
 }
 
@@ -78,7 +78,7 @@ export interface ResumeNextProps {
  * @internal
  */
 export interface ResumeScriptProps {
-  snapshotIdentifier: string;
+  identifier: string;
   items: Map<string, Entry<unknown>>;
   createMap: boolean;
 }
@@ -88,14 +88,14 @@ export interface ResumeScriptProps {
  */
 export interface EntryIterator {
   items: Map<string, Entry<unknown>>;
-  next: () => EntryIterator | null;
+  next: () => EntryIterator | undefined;
 }
 
 /**
  * @internal
  */
 export function ResumeInner({
-  snapshotIdentifier,
+  identifier,
   iter,
   createMap = false,
 }: ResumeInnerProps): JSX.Element {
@@ -105,12 +105,12 @@ export function ResumeInner({
   return (
     <>
       <ResumeScript
-        snapshotIdentifier={snapshotIdentifier}
+        identifier={identifier}
         items={items}
         createMap={createMap}
       />
       <Suspense>
-        <ResumeNext snapshotIdentifier={snapshotIdentifier} iter={iter} />
+        <ResumeNext identifier={identifier} iter={iter} />
       </Suspense>
     </>
   );
@@ -120,7 +120,7 @@ export function ResumeInner({
  * @internal
  */
 export function ResumeNext({
-  snapshotIdentifier,
+  identifier,
   iter,
 }: ResumeNextProps): JSX.Element | null {
   const next = iter.next();
@@ -129,27 +129,27 @@ export function ResumeNext({
     return null;
   }
 
-  return <ResumeInner snapshotIdentifier={snapshotIdentifier} iter={next} />;
+  return <ResumeInner identifier={identifier} iter={next} />;
 }
 
 /**
  * @internal
  */
 export function ResumeScript({
-  snapshotIdentifier,
+  identifier,
   items,
   createMap,
 }: ResumeScriptProps): JSX.Element {
   const parts = [];
 
   if (createMap) {
-    parts.push(`${snapshotIdentifier}=new Map()`);
+    parts.push(`${identifier}=new Map()`);
   }
 
   for (const [id, value] of items) {
     parts.push(
-      `${snapshotIdentifier}.set(${JSON.stringify(id)},${
-        value.kind === "suspended" ? null : JSON.stringify(value)
+      `${identifier}.set(${JSON.stringify(id)},${
+        value.kind === "suspended" ? "undefined" : JSON.stringify(value)
       })`
     );
   }
@@ -162,7 +162,7 @@ export function ResumeScript({
  */
 export function stateDataIteratorNext(
   store: Store,
-  emitted?: Set<string> | null
+  emitted?: Set<string> | undefined
 ): EntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   const items = new Map();
@@ -189,7 +189,7 @@ export function stateDataIteratorNext(
   }
 
   const entry = newEntry(
-    suspended.length > 0 ? Promise.any(suspended).then(nextIterator) : null
+    suspended.length > 0 ? Promise.any(suspended).then(nextIterator) : undefined
   );
 
   return {

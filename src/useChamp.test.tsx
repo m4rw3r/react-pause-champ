@@ -6,10 +6,11 @@ import {
   Suspense,
   createElement,
 } from "react";
+// import { renderToPipeableStream } from "react-dom/server";
 import { render, act } from "@testing-library/react";
 
 import { Store, Provider, fromSnapshot, useChamp } from "./index";
-import { getData } from "./store";
+import { getEntry, getSnapshot } from "./store";
 
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
@@ -40,20 +41,6 @@ function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
     <Suspense fallback={<Suspended />}>
       <Provider store={store}>{children}</Provider>
     </Suspense>
-  );
-}
-
-function StrictModeWrapper({
-  children,
-}: {
-  children?: ReactNode;
-}): JSX.Element {
-  return (
-    <StrictMode>
-      <Suspense fallback={<Suspended />}>
-        <Provider store={store}>{children}</Provider>
-      </Suspense>
-    </StrictMode>
   );
 }
 
@@ -147,9 +134,9 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toEqual(
-      new Error("useChamp() must be inside a <Provider/>")
+      new Error("useChamp() must be inside a <Provider/>.")
     );
-    expect(getData(store).get("test")).toEqual(undefined);
+    expect(getEntry(store, "test")).toEqual(undefined);
   });
 
   it("throws errors", () => {
@@ -166,7 +153,7 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toBe(rejection);
-    expect(getData(store).get("throw-test")).toEqual({
+    expect(getEntry(store, "throw-test")).toEqual({
       kind: "error",
       value: rejection,
     });
@@ -194,7 +181,7 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toBe(rejection);
-    expect(getData(store).get("async-throw-test")).toEqual({
+    expect(getEntry(store, "async-throw-test")).toEqual({
       kind: "error",
       value: rejection,
     });
@@ -214,7 +201,7 @@ describe("useChamp()", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject1);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: testObject1,
     });
@@ -224,7 +211,7 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
     expect(result.current[0]).toBe(testObject1);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: testObject1,
     });
@@ -234,7 +221,7 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(3);
     expect(result.current[0]).toBe(testObject1);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: testObject1,
     });
@@ -254,11 +241,11 @@ describe("useChamp()", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: testObject,
     });
-    expect(getData(store).get("test2")).toEqual(undefined);
+    expect(getEntry(store, "test2")).toEqual(undefined);
 
     await rerender("test2", testObject2);
 
@@ -267,11 +254,11 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
-    expect(getData(store).get("test2")).toEqual({
+    expect(getEntry(store, "test2")).toEqual({
       kind: "value",
       value: testObject2,
     });
-    expect(getData(store).get("test")).toEqual(undefined);
+    expect(getEntry(store, "test")).toEqual(undefined);
 
     await rerender("test", testObject2);
 
@@ -279,11 +266,11 @@ describe("useChamp()", () => {
     expect(result.all).toHaveLength(3);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: testObject2,
     });
-    expect(getData(store).get("test2")).toEqual(undefined);
+    expect(getEntry(store, "test2")).toEqual(undefined);
   });
 
   it("calls init callback exactly once", () => {
@@ -304,100 +291,319 @@ describe("useChamp()", () => {
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(init.mock.calls).toHaveLength(1);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-init")).toEqual({
+    expect(getEntry(store, "test-init")).toEqual({
       kind: "value",
       value: newObj,
     });
   });
-});
 
-// TODO: How to test hydration?
-describe("fromSnapshot()", () => {
-  it.failing("value is used by hook", () => {
-    const unsuspendedObj = { name: "unsuspended-obj" };
-    const newObj = { name: "new-obj" };
-    const init = jest.fn(() => newObj);
+  it("throws an error if the id is already used by a non-persistent state", async () => {
+    const consoleError = jest.fn();
+    // Silence errors
+    console.error = consoleError;
 
-    const snapshot = new Map();
+    const MyComponent = (): JSX.Element => {
+      const [value] = useChamp("the-duplicate-id", "foo");
 
-    snapshot.set("test-unsuspend", { kind: "value", value: unsuspendedObj });
+      return <p>{value}</p>;
+    };
+    const MyDuplicateComponent = (): JSX.Element => {
+      const [value] = useChamp("the-duplicate-id", "bar");
 
-    store = fromSnapshot(snapshot);
+      return <p>{value}</p>;
+    };
 
-    expect(getData(store).get("test-unsuspend")).toEqual({
-      kind: "value",
-      value: unsuspendedObj,
-    });
-
-    const { container, result, error, unmount } = renderHook(
-      useChamp,
-      { wrapper: Wrapper },
-      "test-unsuspend",
-      init
+    const duplicateStateError = new Error(
+      "State 'the-duplicate-id' is already mounted in another component."
     );
 
-    expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(1);
-    expect(result.current).toHaveLength(2);
-    expect(result.current[0]).toBe(unsuspendedObj);
-    expect(result.current[1]).toBeInstanceOf(Function);
-    expect(init.mock.calls).toHaveLength(0);
-    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-unsuspend")).toEqual({
-      kind: "value",
-      value: unsuspendedObj,
-    });
+    expect(() =>
+      render(
+        <Provider store={store}>
+          <div>
+            <MyComponent />
+            <MyDuplicateComponent />
+          </div>
+        </Provider>
+      )
+    ).toThrow(duplicateStateError);
 
-    unmount();
-
-    expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(1);
-    expect(init.mock.calls).toHaveLength(0);
-    expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test-unsuspend")).toBeUndefined();
+    expect(consoleError.mock.calls).toHaveLength(2);
+    expect(consoleError.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        detail: duplicateStateError,
+        type: "unhandled exception",
+      })
+    );
   });
 
-  it.failing("value is used by hook, StrictMode", () => {
-    const unsuspendedObj = { name: "unsuspended-obj" };
-    const newObj = { name: "new-obj" };
-    const init = jest.fn(() => newObj);
+  it("throws an error if the id is already used by a non-persistent state, async", async () => {
+    const consoleError = jest.fn();
+    // Silence errors
+    console.error = consoleError;
 
+    let caughtError;
+    let resolve: (str: string) => void;
+    const theValue = new Promise<string>((r) => (resolve = r));
+    const duplicateStateError = new Error(
+      "State 'the-duplicate-id' is already mounted in another component."
+    );
+
+    const MyComponent = (): JSX.Element => {
+      const [value] = useChamp("the-duplicate-id", () => theValue);
+
+      return <p>{value}</p>;
+    };
+    const MyDuplicateComponent = (): JSX.Element => {
+      const [value] = useChamp("the-duplicate-id", "bar");
+
+      return <p>{value}</p>;
+    };
+
+    const { container } = render(
+      <Provider store={store}>
+        <div>
+          <MyComponent />
+          <MyDuplicateComponent />
+        </div>
+      </Provider>
+    );
+
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toEqual("");
+
+    try {
+      await act(async () => {
+        resolve("foo");
+
+        await theValue;
+      });
+    } catch (err) {
+      caughtError = err;
+    }
+
+    expect(caughtError).toEqual(duplicateStateError);
+    expect(consoleError.mock.calls).toHaveLength(2);
+    expect(consoleError.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        detail: duplicateStateError,
+        type: "unhandled exception",
+      })
+    );
+    expect(container.innerHTML).toEqual("");
+  });
+});
+
+describe("useChamp() when hydrating", () => {
+  it("throws if no snapshot is present, then React falls back to client-side init", () => {
+    const consoleError = jest.fn();
+    // Silence and record errors
+    console.error = consoleError;
+
+    const noSnapshotError = new Error("Server-snapshot is missing.");
+    const container = document.createElement("div");
+    const init = jest.fn(() => ({ text: "test-new" }));
+    const MyComponent = (): JSX.Element => {
+      const [{ text }] = useChamp("test-unsuspend", init);
+
+      return <p>{text}</p>;
+    };
+
+    const el = document.createElement("p");
+
+    el.innerHTML = "test-unsuspended";
+
+    container.appendChild(el);
+
+    expect(getEntry(store, "test-unsuspend")).toBeUndefined();
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
+
+    render(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>,
+      { hydrate: true, container }
+    );
+    jest.runAllTimers();
+
+    expect(consoleError.mock.calls).toHaveLength(4);
+    expect(consoleError.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        detail: noSnapshotError,
+        type: "unhandled exception",
+      })
+    );
+    expect(container.innerHTML).toEqual("<p>test-new</p>");
+    expect(init.mock.calls).toHaveLength(1);
+    expect(getEntry(store, "test-unsuspend")).toEqual({
+      kind: "value",
+      value: { text: "test-new" },
+    });
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
+  });
+
+  it("throws if no snapshot is present for the given id, then React falls back to client-side init", () => {
+    const consoleError = jest.fn();
+    // Silence and record errors
+    console.error = consoleError;
+
+    // Just an empty snapshot
+    store = fromSnapshot(new Map());
+
+    const noSnapshotError = new Error(
+      "Server-snapshot is missing 'test-unsuspend'."
+    );
+    const container = document.createElement("div");
+    const init = jest.fn(() => ({ text: "test-new" }));
+    const MyComponent = (): JSX.Element => {
+      const [{ text }] = useChamp("test-unsuspend", init);
+
+      return <p>{text}</p>;
+    };
+
+    const el = document.createElement("p");
+
+    el.innerHTML = "test-unsuspended";
+
+    container.appendChild(el);
+
+    expect(getEntry(store, "test-unsuspend")).toBeUndefined();
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
+
+    render(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>,
+      { hydrate: true, container }
+    );
+    jest.runAllTimers();
+
+    expect(consoleError.mock.calls).toHaveLength(4);
+    expect(consoleError.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        detail: noSnapshotError,
+        type: "unhandled exception",
+      })
+    );
+    expect(container.innerHTML).toEqual("<p>test-new</p>");
+    expect(init.mock.calls).toHaveLength(1);
+    expect(getEntry(store, "test-unsuspend")).toEqual({
+      kind: "value",
+      value: { text: "test-new" },
+    });
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
+  });
+
+  it("value is used by hook", () => {
+    const unsuspendedObj = { text: "test-unsuspended" };
     const snapshot = new Map();
+    const container = document.createElement("div");
+    const init = jest.fn(() => ({ text: "test-new" }));
+    const MyComponent = (): JSX.Element => {
+      const [{ text }] = useChamp("test-unsuspend", init);
+
+      return <p>{text}</p>;
+    };
+
+    const el = document.createElement("p");
+
+    el.innerHTML = "test-unsuspended";
+
+    container.appendChild(el);
 
     snapshot.set("test-unsuspend", { kind: "value", value: unsuspendedObj });
 
     store = fromSnapshot(snapshot);
 
-    expect(getData(store).get("test-unsuspend")).toEqual({
+    expect(getEntry(store, "test-unsuspend")).toBeUndefined();
+    expect(getSnapshot(store, "test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
     });
 
-    const { container, result, error, unmount } = renderHook(
-      useChamp,
-      { wrapper: StrictModeWrapper },
-      "test-unsuspend",
-      init
+    const { unmount } = render(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>,
+      { hydrate: true, container }
     );
+    jest.runAllTimers();
 
-    expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(2);
-    expect(result.current[0]).toBe(unsuspendedObj);
-    expect(result.current[1]).toBeInstanceOf(Function);
-    expect(init.mock.calls).toHaveLength(0);
-    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-unsuspend")).toEqual({
+    expect(container.innerHTML).toEqual("<p>test-unsuspended</p>");
+    expect(init).not.toHaveBeenCalled();
+    expect(getEntry(store, "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+    expect(getSnapshot(store, "test-unsuspend")).toEqual({
       kind: "value",
       value: unsuspendedObj,
     });
 
     unmount();
+    jest.runAllTimers();
 
-    expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(2);
     expect(init.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test-unsuspend")).toBeUndefined();
+    expect(getEntry(store, "test-unsuspend")).toBeUndefined();
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
+  });
+
+  it("value is used by hook, StrictMode", () => {
+    const unsuspendedObj = { text: "test-unsuspended" };
+    const snapshot = new Map();
+    const container = document.createElement("div");
+    const init = jest.fn(() => ({ text: "test-new" }));
+    const MyComponent = (): JSX.Element => {
+      const [{ text }] = useChamp("test-unsuspend", init);
+
+      return <p>{text}</p>;
+    };
+
+    const el = document.createElement("p");
+
+    el.innerHTML = "test-unsuspended";
+
+    container.appendChild(el);
+
+    snapshot.set("test-unsuspend", { kind: "value", value: unsuspendedObj });
+
+    store = fromSnapshot(snapshot);
+
+    expect(getEntry(store, "test-unsuspend")).toBeUndefined();
+    expect(getSnapshot(store, "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+
+    const { unmount } = render(
+      <StrictMode>
+        <Provider store={store}>
+          <MyComponent />
+        </Provider>
+      </StrictMode>,
+      { hydrate: true, container }
+    );
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual("<p>test-unsuspended</p>");
+    expect(init).not.toHaveBeenCalled();
+    expect(getEntry(store, "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+    expect(getSnapshot(store, "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+
+    unmount();
+    jest.runAllTimers();
+
+    expect(init.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toBe("");
+    expect(getEntry(store, "test-unsuspend")).toBeUndefined();
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
   });
 });
 
@@ -416,7 +622,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(1);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: 1,
     });
@@ -430,7 +636,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(2);
     expect(result.current[1]).toBe(update);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test")).toEqual({
+    expect(getEntry(store, "test")).toEqual({
       kind: "value",
       value: 2,
     });
@@ -441,7 +647,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(2);
     expect(result.current[0]).toBe(2);
     expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test")).toBeUndefined();
+    expect(getEntry(store, "test")).toBeUndefined();
   });
 
   it("triggers re-render with async-updated values", async () => {
@@ -464,7 +670,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async")).toEqual({
+    expect(getEntry(store, "test-update-async")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -477,7 +683,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async")).toEqual({
+    expect(getEntry(store, "test-update-async")).toEqual({
       kind: "suspended",
       value: waiting,
     });
@@ -494,7 +700,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(newDataObj);
     expect(result.current[1]).toBe(update);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async")).toEqual({
+    expect(getEntry(store, "test-update-async")).toEqual({
       kind: "value",
       value: newDataObj,
     });
@@ -504,7 +710,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
     expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test-update-async")).toBeUndefined();
+    expect(getEntry(store, "test-update-async")).toBeUndefined();
   });
 
   it("discards async-updated values from unmounted components", async () => {
@@ -532,7 +738,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -546,7 +752,7 @@ describe("useChamp().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
       value: waiting,
     });
@@ -557,7 +763,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
+    expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
     // We have to wait for the promise to complete
     await act(async () => {
@@ -570,11 +776,11 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed after drop"
+        "Asynchronous state update of 'test-update-async-unmount' completed after unmount."
       )
     );
     expect(container.innerHTML).toEqual("");
-    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
+    expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
   });
 
   it("discards async-updated values from old components", async () => {
@@ -602,7 +808,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -616,7 +822,7 @@ describe("useChamp().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
       value: waiting,
     });
@@ -627,7 +833,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
+    expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
     // Render again, with same id
     ({ container, error, result, unmount } = renderHook(
@@ -641,7 +847,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toEqual([]);
     expect(container.innerHTML).toEqual("<p>TestComponent</p>");
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -657,11 +863,11 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced"
+        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced."
       )
     );
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -696,7 +902,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -710,7 +916,7 @@ describe("useChamp().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
       value: waiting,
     });
@@ -721,7 +927,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
-    expect(getData(store).get("test-update-async-unmount")).toBeUndefined();
+    expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
     // Render again, with same id
     let result2;
@@ -741,7 +947,7 @@ describe("useChamp().update", () => {
     expect(result2.all).toHaveLength(0);
     expect(consoleError.mock.calls).toEqual([]);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
       value: waiting2,
     });
@@ -757,11 +963,11 @@ describe("useChamp().update", () => {
     expect(result2.all).toHaveLength(0);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced"
+        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced."
       )
     );
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
       value: waiting2,
     });
@@ -780,7 +986,7 @@ describe("useChamp().update", () => {
     expect(result2.current[0]).toBe(newDataObj);
     expect(result2.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-unmount")).toEqual({
+    expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
       value: newDataObj,
     });
@@ -811,7 +1017,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-old")).toEqual({
+    expect(getEntry(store, "test-update-async-old")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -825,7 +1031,7 @@ describe("useChamp().update", () => {
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-old")).toEqual({
+    expect(getEntry(store, "test-update-async-old")).toEqual({
       kind: "suspended",
       value: waiting,
     });
@@ -838,8 +1044,8 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-old")).toBeUndefined();
-    expect(getData(store).get("test-update-async-new")).toEqual({
+    expect(getEntry(store, "test-update-async-old")).toBeUndefined();
+    expect(getEntry(store, "test-update-async-new")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -855,12 +1061,12 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(2);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-old' completed after drop"
+        "Asynchronous state update of 'test-update-async-old' completed after unmount."
       )
     );
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("test-update-async-old")).toBeUndefined();
-    expect(getData(store).get("test-update-async-new")).toEqual({
+    expect(getEntry(store, "test-update-async-old")).toBeUndefined();
+    expect(getEntry(store, "test-update-async-new")).toEqual({
       kind: "value",
       value: dataObj,
     });
@@ -881,7 +1087,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe("init");
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("update-throw-test")).toEqual({
+    expect(getEntry(store, "update-throw-test")).toEqual({
       kind: "value",
       value: "init",
     });
@@ -899,7 +1105,7 @@ describe("useChamp().update", () => {
     expect(error.current).toBe(testError);
     expect(result.current).toBeUndefined();
     expect(container.innerHTML).toMatch(TEST_COMPONENT_ERROR_HTML);
-    expect(getData(store).get("update-throw-test")).toEqual({
+    expect(getEntry(store, "update-throw-test")).toEqual({
       kind: "error",
       value: testError,
     });
@@ -925,7 +1131,7 @@ describe("useChamp().update", () => {
     expect(result.current[0]).toBe("init");
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
-    expect(getData(store).get("update-async-throw-test")).toEqual({
+    expect(getEntry(store, "update-async-throw-test")).toEqual({
       kind: "value",
       value: "init",
     });
@@ -938,7 +1144,7 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(result.current).toBeUndefined();
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
-    expect(getData(store).get("update-async-throw-test")).toEqual({
+    expect(getEntry(store, "update-async-throw-test")).toEqual({
       kind: "suspended",
       value: waiting,
     });
@@ -956,11 +1162,337 @@ describe("useChamp().update", () => {
     expect(error.current).toBe(rejection);
     expect(result.current).toBeUndefined();
     expect(container.innerHTML).toMatch(TEST_COMPONENT_ERROR_HTML);
-    expect(getData(store).get("update-async-throw-test")).toEqual({
+    expect(getEntry(store, "update-async-throw-test")).toEqual({
       kind: "error",
       value: rejection,
     });
   });
+
+  it("fails with a predictable exception after error", async () => {
+    let caughtError;
+    const { container, error, result } = renderHook(
+      useChamp,
+      { wrapper: Wrapper },
+      "test",
+      1
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(1);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: 1,
+    });
+
+    const [, update] = result.current;
+
+    await act(() =>
+      update(() => {
+        throw new Error("this test error");
+      })
+    );
+
+    expect(error.all).toHaveLength(1);
+    expect(result.all).toHaveLength(1);
+    expect(error.all).toEqual([new Error("this test error")]);
+    expect(result.current).toBeUndefined();
+    expect(container.innerHTML).toEqual("<p>TestComponent.Error</p>");
+    expect(getEntry(store, "test")).toEqual({
+      kind: "error",
+      value: new Error("this test error"),
+    });
+
+    try {
+      await act(() => update(2));
+    } catch (err) {
+      caughtError = err;
+    }
+
+    expect(caughtError).toEqual(
+      new Error("State update of 'test' requires a value (was error).")
+    );
+    expect(error.all).toHaveLength(1);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toBeUndefined();
+    expect(container.innerHTML).toBe("<p>TestComponent.Error</p>");
+    expect(getEntry(store, "test")).toEqual({
+      kind: "error",
+      value: new Error("this test error"),
+    });
+  });
+
+  it("fails with a predictable exception after unmount", async () => {
+    let caughtError;
+    const { container, error, result, unmount } = renderHook(
+      useChamp,
+      { wrapper: Wrapper },
+      "test",
+      1
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(1);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: 1,
+    });
+
+    const [, update] = result.current;
+
+    unmount();
+
+    try {
+      await act(() => update(2));
+    } catch (err) {
+      caughtError = err;
+    }
+
+    expect(caughtError).toEqual(
+      new Error("State update of 'test' requires a value (was empty).")
+    );
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current[0]).toBe(1);
+    expect(container.innerHTML).toBe("");
+    expect(getEntry(store, "test")).toBeUndefined();
+  });
+
+  it("fails with a predictable exception if called during an asynchronous update", async () => {
+    let caughtError;
+    let resolveWaiting: (obj: { name: string }) => void;
+    const waiting = new Promise((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const dataObj = { name: "data-obj" };
+    const newDataObj = { name: "new-data-obj" };
+    const { container, error, result, unmount } = renderHook(
+      useChamp,
+      { wrapper: Wrapper },
+      "test-update-async",
+      dataObj
+    );
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(dataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getEntry(store, "test-update-async")).toEqual({
+      kind: "value",
+      value: dataObj,
+    });
+
+    const [, update] = result.current;
+
+    await act(() => update(() => waiting));
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getEntry(store, "test-update-async")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+
+    try {
+      await act(() => update({ name: "should-never-show" }));
+    } catch (err) {
+      caughtError = err;
+    }
+
+    expect(caughtError).toEqual(
+      new Error(
+        "State update of 'test-update-async' requires a value (was suspended)."
+      )
+    );
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(1);
+    expect(result.current).toBe(undefined);
+    expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
+    expect(getEntry(store, "test-update-async")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+
+    // We have to wait for the promise to complete
+    await act(async () => {
+      resolveWaiting(newDataObj);
+
+      await waiting;
+    });
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(result.current[0]).toBe(newDataObj);
+    expect(result.current[1]).toBe(update);
+    expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
+    expect(getEntry(store, "test-update-async")).toEqual({
+      kind: "value",
+      value: newDataObj,
+    });
+
+    unmount();
+
+    expect(error.all).toHaveLength(0);
+    expect(result.all).toHaveLength(2);
+    expect(container.innerHTML).toBe("");
+    expect(getEntry(store, "test-update-async")).toBeUndefined();
+  });
 });
 
-// TODO: Server rendering
+describe("useChamp(persistent)", () => {
+  it("triggers error if not all uses of the same id are persistent", async () => {
+    const consoleError = jest.fn();
+    // Silence errors
+    console.error = consoleError;
+
+    const sharedObj = { name: "shared-obj" };
+    const init = jest.fn(() => sharedObj);
+    const renders: Array<string> = [];
+    const MyComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init, { persistent: false });
+
+      renders.push("MyComponent");
+
+      return <p>{data.name}</p>;
+    };
+    const MyOtherComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init, { persistent: true });
+
+      renders.push("MyOtherComponent");
+
+      return <p>{data.name}</p>;
+    };
+
+    const notPersistentStateError = new Error(
+      "State 'test' is not persistent."
+    );
+
+    expect(() =>
+      render(
+        <Provider store={store}>
+          <MyComponent />
+          <MyOtherComponent />
+        </Provider>
+      )
+    ).toThrow(notPersistentStateError);
+    jest.runAllTimers();
+
+    expect(consoleError.mock.calls).toHaveLength(2);
+    expect(consoleError.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        detail: notPersistentStateError,
+        type: "unhandled exception",
+      })
+    );
+    expect(init.mock.calls).toHaveLength(1);
+    // We still expect both to have rendered, we check things in an effect
+    // which is triggered after render
+    expect(renders).toEqual(["MyComponent", "MyOtherComponent"]);
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: sharedObj,
+    });
+  });
+
+  it("triggers error if not all uses of the same id are persistent, reverse", async () => {
+    const consoleError = jest.fn();
+    // Silence errors
+    console.error = consoleError;
+
+    const sharedObj = { name: "shared-obj" };
+    const init = jest.fn(() => sharedObj);
+    const renders: Array<string> = [];
+    const MyComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init, { persistent: false });
+
+      renders.push("MyComponent");
+
+      return <p>{data.name}</p>;
+    };
+    const MyOtherComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init, { persistent: true });
+
+      renders.push("MyOtherComponent");
+
+      return <p>{data.name}</p>;
+    };
+
+    const persistentStateError = new Error("State 'test' is persistent.");
+
+    expect(() =>
+      render(
+        <Provider store={store}>
+          <MyOtherComponent />
+          <MyComponent />
+        </Provider>
+      )
+    ).toThrow(persistentStateError);
+    jest.runAllTimers();
+
+    expect(consoleError.mock.calls).toHaveLength(2);
+    expect(consoleError.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        detail: persistentStateError,
+        type: "unhandled exception",
+      })
+    );
+    expect(init.mock.calls).toHaveLength(1);
+    // We still expect both to have rendered, we check things in an effect
+    // which is triggered after render
+    expect(renders).toEqual(["MyOtherComponent", "MyComponent"]);
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: sharedObj,
+    });
+  });
+
+  it("shares state between multiple components", async () => {
+    const sharedObj = { name: "shared-obj" };
+    const init = jest.fn(() => sharedObj);
+    const renders: Array<{ name: string; data: { name: string } }> = [];
+    const MyComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init, { persistent: true });
+
+      renders.push({ name: "MyComponent", data });
+
+      return <p>{data.name}</p>;
+    };
+    const MyOtherComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init, { persistent: true });
+
+      renders.push({ name: "MyOtherComponent", data });
+
+      return <p>{data.name}</p>;
+    };
+    const { container } = render(
+      <Provider store={store}>
+        <MyComponent />
+        <MyOtherComponent />
+      </Provider>
+    );
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual("<p>shared-obj</p><p>shared-obj</p>");
+    expect(renders).toEqual([
+      { name: "MyComponent", data: sharedObj },
+      { name: "MyOtherComponent", data: sharedObj },
+    ]);
+    expect(init.mock.calls).toHaveLength(1);
+    expect(renders[0]!.data).toBe(renders[1]!.data);
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: sharedObj,
+    });
+  });
+});

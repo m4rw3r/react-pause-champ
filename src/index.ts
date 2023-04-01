@@ -1,5 +1,5 @@
 export type { Entry } from "./entry";
-export type { DroppedEntry, Listener, UnregisterFn } from "./store";
+export type { DroppedEntry, Listener, Unregister } from "./store";
 export type {
   Init,
   InitFn,

@@ -100,10 +100,10 @@ export function useChamp<T>(
   // Make sure we always pass the same functions, both to consumers to avoid
   // re-redering whole trees, but also to useSyncExternalStore() since it will
   // trigger extra logic and maybe re-render
-  const { getSnapshot, getServerSnapshot, update, subscribe } = useMemo(
-    () => ({
-      getSnapshot: () => initState(store, id, initialState),
-      getServerSnapshot: () => {
+  const [getSnapshot, getServerSnapshot, update, subscribe] = useMemo(
+    () => [
+      () => initState(store, id, initialState),
+      () => {
         // This callback should only be triggered for hydrating components,
         // which means they MUST have a server-snapshot:
         if (!store._snapshot) {
@@ -116,10 +116,12 @@ export function useChamp<T>(
           throw new Error(`Server-snapshot missing '${id}'`);
         }
 
+        // TODO: We probably need to populate the store._data with the snapshotted entry here
+
         return value;
       },
-      update: (update: Update<T>) => updateState(store, id, update),
-      subscribe: (callback: () => void) => {
+      (update: Update<T>) => updateState(store, id, update),
+      (callback: () => void) => {
         // Subscribe to updates, but also drop the state-data if we are unmounting
         const unsubscribe = store.listen(id, callback);
         // Include the id so we can ensure we still drop when they do differ
@@ -158,7 +160,7 @@ export function useChamp<T>(
         // since we will not drop the state entry.
         return persistent ? unsubscribe : drop;
       },
-    }),
+    ],
     [store, id, persistent]
   );
 

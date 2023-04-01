@@ -6,10 +6,6 @@ import { Init, InitFn, Update, UpdateFn } from "./useChamp";
  */
 export type DroppedEntry = { kind: "drop"; value: null };
 /**
- * Data popluated using <Resume/>
- */
-export type ResumeData = Map<string, unknown>;
-/**
  * A listener for state-data updates.
  */
 export type Listener<T> = (
@@ -40,39 +36,28 @@ export type EmptyObject = { [n: string]: never };
  * Container for application state data.
  */
 export class Store {
-  // TODO: Add awaiting server somehow (from <Suspense/> + <Resume/>)
   /**
    * @internal
    */
-  readonly _data: Map<string, Entry<any>>;
+  readonly _data: Map<string, Entry<any>> = new Map();
   /**
    * @internal
    */
   readonly _listeners: Map<string, Set<Listener<any>>> = new Map();
   /**
+   * Developer-mode metadata for initialized entries, tracking settings and
+   * attached component-instances
+   *
    * @internal
    */
   _meta?: Map<string, EntryMeta>;
-
-  constructor(data?: ResumeData | Store | null) {
-    this._data =
-      data instanceof Map
-        ? data
-        : data instanceof Store
-        ? new Map(data._data)
-        : new Map();
-  }
-
   /**
-   * Attempt to add data for a state-to-be-unsuspended.
+   * Snapshot from server-rendering, a reference to an externally defined Map
+   * created by <Resume />.
+   *
+   * @internal
    */
-  unsuspend(id: string, kind: "value" | "error", value: any): void {
-    if (this._data.has(id)) {
-      throw new Error(`State '${id}' has already been initialized.`);
-    }
-
-    this._data.set(id, { kind, value });
-  }
+  _snapshot?: Map<string, Entry<any> | null>;
 
   /**
    * Listen to state-updates / errors.
@@ -95,6 +80,25 @@ export class Store {
 }
 
 /**
+ * Creates a new Store from a snapshot.
+ *
+ * Nulls correspond to entries which we are still waiting for, and should
+ * arrive once the component has finished rendering on the server.
+ *
+ * @see Resume
+ * @see React.renderToPipeableStream
+ */
+export function fromSnapshot(
+  snapshot: Map<string, Entry<string> | null>
+): Store {
+  const store = new Store();
+
+  store._snapshot = snapshot;
+
+  return store;
+}
+
+/**
  * @internal
  */
 export function getData(store: Store): Map<string, Entry<unknown>> {
@@ -114,7 +118,7 @@ export function getData(store: Store): Map<string, Entry<unknown>> {
  * @internal
  */
 export function setState<T>(store: Store, id: string, entry: Entry<T>): void {
-  if (process.env.NODE_ENV !== "production" && entry.kind === "pending") {
+  if (process.env.NODE_ENV !== "production" && entry.kind === "suspended") {
     // If we replaced the Entry at the slot we set to, print a warning.
     const verifyCurrentEntry = () => {
       const currentEntry = store._data.get(id);
@@ -132,7 +136,7 @@ export function setState<T>(store: Store, id: string, entry: Entry<T>): void {
       }
     };
 
-    // Replace the pending value to avoid triggering
+    // Replace the suspended value to avoid triggering
     // unhandled promise rejection warning/exit:
     entry.value = entry.value.finally(verifyCurrentEntry);
   }
@@ -244,7 +248,7 @@ export function checkMeta(
     store._meta = new Map();
   }
 
-  const meta = store._meta!.get(id);
+  const meta = store._meta.get(id);
 
   if (meta) {
     if (meta.persistent !== persistent) {
@@ -257,7 +261,7 @@ export function checkMeta(
       throw new Error(`State '${id}' is already mounted in another component`);
     }
   } else {
-    store._meta!.set(id, { persistent, componentId });
+    store._meta.set(id, { persistent, componentId });
   }
 }
 

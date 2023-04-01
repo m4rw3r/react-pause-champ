@@ -1,18 +1,18 @@
 /**
  * State-data entry.
  *
- * If the entry is in the "pending" state its content will be replaced with the
- * appropriate variant once the promise resolves.
+ * If the entry is in the "suspended" state its content will be replaced with
+ * the appropriate variant once the promise resolves.
  *
- * Note: Promise resolution and entry-updates will not be notified through
- * listeners on Store.
+ * Note: Promise resolution and internal entry-updates will not be notified
+ * through listeners on Store.
  *
  * @see newEntry()
  * @see unwrapEntry()
  */
 export type Entry<T> =
   | { kind: "value"; value: T }
-  | { kind: "pending"; value: Promise<T> }
+  | { kind: "suspended"; value: Promise<T> }
   | { kind: "error"; value: Error };
 
 /**
@@ -30,7 +30,7 @@ export function newEntry<T>(value: Promise<T> | T): Entry<T> {
   }
 
   const suspendable: Entry<T> = {
-    kind: "pending",
+    kind: "suspended",
     value: value.then(
       (value) => {
         suspendable.kind = "value";

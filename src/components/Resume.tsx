@@ -9,16 +9,39 @@ import { Store } from "../store";
  */
 export interface ResumeProps {
   /**
-   * Java-Script prefix to reach .unsuspend(), eg. `window.store`.
+   * Java-Script global variable/path to store the server snapshot,
+   * eg. `window.store`.
    */
-  prefix: string;
+  snapshotIdentifier: string;
 }
 
 /**
- * Component which first creates a placeholder `Map` if `prefix` is not set,
- * then populates this map or any replacing `Store` with state data as it is resolved.
+ * Component which first creates a server-snapshot `Map`, then populates this
+ * map with state data as it is resolved. Compatible with
+ * `renderToPipeableStream()`.
+ *
+ * Usage:
+ *
+ * ```typescript
+ * // server
+ * <Provider store={store}>
+ *   <App />
+ *   <Resume snapshotIdentifier="window.snapshot" />
+ * </Provider>
+ *
+ * // client
+ * const store = fromSnapshot(window.snapshot);
+ * const container = document.getElementById('root');
+ *
+ * hydrateRoot(
+ *   container,
+ *   <Provider store={store}>
+ *     <App />
+ *   </Provider>
+ * );
+ * ```
  */
-export function Resume({ prefix }: ResumeProps): JSX.Element {
+export function Resume({ snapshotIdentifier }: ResumeProps): JSX.Element {
   const store = useContext(Context);
 
   if (!store) {
@@ -27,7 +50,7 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
 
   return (
     <ResumeInner
-      prefix={prefix}
+      snapshotIdentifier={snapshotIdentifier}
       iter={stateDataIteratorNext(store)}
       createMap
     />
@@ -38,7 +61,7 @@ export function Resume({ prefix }: ResumeProps): JSX.Element {
  * @internal
  */
 export interface ResumeInnerProps {
-  prefix: string;
+  snapshotIdentifier: string;
   iter: EntryIterator;
   createMap?: boolean;
 }
@@ -47,7 +70,7 @@ export interface ResumeInnerProps {
  * @internal
  */
 export interface ResumeNextProps {
-  prefix: string;
+  snapshotIdentifier: string;
   iter: EntryIterator;
 }
 
@@ -55,7 +78,7 @@ export interface ResumeNextProps {
  * @internal
  */
 export interface ResumeScriptProps {
-  prefix: string;
+  snapshotIdentifier: string;
   items: Map<string, Entry<unknown>>;
   createMap: boolean;
 }
@@ -72,7 +95,7 @@ export interface EntryIterator {
  * @internal
  */
 export function ResumeInner({
-  prefix,
+  snapshotIdentifier,
   iter,
   createMap = false,
 }: ResumeInnerProps): JSX.Element {
@@ -81,9 +104,13 @@ export function ResumeInner({
   // Gradually expand as we get finished items
   return (
     <>
-      <ResumeScript prefix={prefix} items={items} createMap={createMap} />
+      <ResumeScript
+        snapshotIdentifier={snapshotIdentifier}
+        items={items}
+        createMap={createMap}
+      />
       <Suspense>
-        <ResumeNext prefix={prefix} iter={iter} />
+        <ResumeNext snapshotIdentifier={snapshotIdentifier} iter={iter} />
       </Suspense>
     </>
   );
@@ -93,7 +120,7 @@ export function ResumeInner({
  * @internal
  */
 export function ResumeNext({
-  prefix,
+  snapshotIdentifier,
   iter,
 }: ResumeNextProps): JSX.Element | null {
   const next = iter.next();
@@ -102,32 +129,32 @@ export function ResumeNext({
     return null;
   }
 
-  return <ResumeInner prefix={prefix} iter={next} />;
+  return <ResumeInner snapshotIdentifier={snapshotIdentifier} iter={next} />;
 }
 
 /**
  * @internal
  */
 export function ResumeScript({
-  prefix,
+  snapshotIdentifier,
   items,
   createMap,
 }: ResumeScriptProps): JSX.Element {
   const parts = [];
 
   if (createMap) {
-    parts.push(
-      `${prefix}=new Map();${prefix}.unsuspend=function(k,v){this.set(k,v)};`
-    );
+    parts.push(`${snapshotIdentifier}=new Map()`);
   }
 
   for (const [id, value] of items) {
     parts.push(
-      `${prefix}.unsuspend(${JSON.stringify(id)},${JSON.stringify(value)});`
+      `${snapshotIdentifier}.set(${JSON.stringify(id)},${
+        value.kind === "suspended" ? null : JSON.stringify(value)
+      })`
     );
   }
 
-  return <script defer dangerouslySetInnerHTML={{ __html: parts.join("") }} />;
+  return <script defer dangerouslySetInnerHTML={{ __html: parts.join(";") }} />;
 }
 
 /**
@@ -139,16 +166,21 @@ export function stateDataIteratorNext(
 ): EntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   const items = new Map();
-  const pending = [];
+  const suspended = [];
 
   for (const [k, v] of store._data) {
-    if (emitted.has(k) || v.kind === "pending") {
-      pending.push(v.value);
-
+    if (emitted.has(k)) {
       continue;
     }
 
-    emitted.add(k);
+    if (v.kind === "suspended") {
+      suspended.push(v.value);
+
+      continue;
+    } else {
+      emitted.add(k);
+    }
+
     items.set(k, v);
   }
 
@@ -157,7 +189,7 @@ export function stateDataIteratorNext(
   }
 
   const entry = newEntry(
-    pending.length > 0 ? Promise.any(pending).then(nextIterator) : null
+    suspended.length > 0 ? Promise.any(suspended).then(nextIterator) : null
   );
 
   return {

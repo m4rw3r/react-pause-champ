@@ -73,7 +73,7 @@ export function useChamp<T>(
     // Unique object for this component instance, used to detect multiple
     // useChamp() attaching on the same id without persistent flag in
     // developer mode
-    const cid = /* @__PURE__ */ useRef({});
+    const cid = useRef<{}>();
 
     // TODO: useEffect only runs on client, how do we check meta-info
     // on server-render?
@@ -100,9 +100,24 @@ export function useChamp<T>(
   // Make sure we always pass the same functions, both to consumers to avoid
   // re-redering whole trees, but also to useSyncExternalStore() since it will
   // trigger extra logic and maybe re-render
-  const { init, update, subscribe } = useMemo(
+  const { getSnapshot, getServerSnapshot, update, subscribe } = useMemo(
     () => ({
-      init: () => initState(store, id, initialState),
+      getSnapshot: () => initState(store, id, initialState),
+      getServerSnapshot: () => {
+        // This callback should only be triggered for hydrating components,
+        // which means they MUST have a server-snapshot:
+        if (!store._snapshot) {
+          throw new Error(`Expected store to have a server-snapshot`);
+        }
+
+        const value = store._snapshot.get(id);
+
+        if (!value) {
+          throw new Error(`Server-snapshot missing '${id}'`);
+        }
+
+        return value;
+      },
       update: (update: Update<T>) => updateState(store, id, update),
       subscribe: (callback: () => void) => {
         // Subscribe to updates, but also drop the state-data if we are unmounting
@@ -147,10 +162,10 @@ export function useChamp<T>(
     [store, id, persistent]
   );
 
-  // TODO: Maybe different server snapshot? Which will ensure we load the
-  // data from the server, and complain if there is no data?
   // Unwrap at end once we have initialized all hooks
-  const value = unwrapEntry(useSyncExternalStore(subscribe, init, init));
+  const value = unwrapEntry(
+    useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  );
 
   return [value, update];
 }

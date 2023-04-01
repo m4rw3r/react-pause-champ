@@ -1,5 +1,5 @@
 export type { Entry } from "./entry";
-export type { DroppedEntry, ResumeData, Listener, UnregisterFn } from "./store";
+export type { DroppedEntry, Listener, UnregisterFn } from "./store";
 export type {
   Init,
   InitFn,
@@ -9,7 +9,7 @@ export type {
   UseChampOptions,
 } from "./useChamp";
 
-export { Store } from "./store";
+export { Store, fromSnapshot } from "./store";
 export { useChamp } from "./useChamp";
 export { Provider } from "./components/Provider";
 export { Resume } from "./components/Resume";

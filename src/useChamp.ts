@@ -145,11 +145,7 @@ function useCheckEntry(store: Store, id: string, persistent: boolean): void {
  *
  * @internal
  */
-export function initState<T>(
-  store: Store,
-  id: string,
-  init: Init<T>
-): Entry<T> {
+function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
   let entry: Entry<T> | undefined = getEntry(store, id);
 
   if (!entry) {
@@ -174,11 +170,7 @@ export function initState<T>(
  *
  * @internal
  */
-export function updateState<T>(
-  store: Store,
-  id: string,
-  update: Update<T>
-): void {
+function updateState<T>(store: Store, id: string, update: Update<T>): void {
   let entry = getEntry<T>(store, id);
 
   if (!entry || entry.kind !== "value") {

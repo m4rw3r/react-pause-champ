@@ -4,10 +4,10 @@ import express from "express";
 import { renderToPipeableStream } from "react-dom/server";
 import { createAppRoot } from ".";
 
-// We build server after client, so this is accessible
+// @ts-ignore We build server after client, so this is accessible
 import { default as manifest } from "../../dist/client/manifest.json";
 
-function handler(req: Request, res: Response): void {
+function handler(_req: Request, res: Response): void {
   const { "src/client/index.tsx": clientEntryPath } = manifest;
 
   const stream = renderToPipeableStream(createAppRoot(), {

@@ -11,22 +11,22 @@ function createViteDevHtmlTransform() {
   let transformed = false;
 
   return new Transform({
-    transform(chunk: string, encoding: string, callback: Callback) {
+    transform(chunk: string, _encoding: string, callback: Callback) {
       if (!transformed) {
         transformed = true;
 
-        return viteDevServer.transformIndexHtml("ASDF", chunk.toString()).then(
+        viteDevServer!.transformIndexHtml("ASDF", chunk.toString()).then(
           (data) => callback(null, data),
           (error) => callback(error, null)
         );
+      } else {
+        callback(null, chunk);
       }
-
-      callback(null, chunk);
     },
   });
 }
 
-export default function handler(req: Request, res: Response): void {
+export default function handler(_req: Request, res: Response): void {
   const clientEntryPath = "src/client/index.tsx";
 
   const stream = renderToPipeableStream(createAppRoot(), {

@@ -99,12 +99,10 @@ export function useChamp<T>(
     () => [
       () => initState(store, id, initialState),
       // We have to swap to restore when we have a DOM and can hydrate, on the
-      // server we have to always use initState since we do not have any
-      // snapshots.
-      () =>
-        canUseDOM()
-          ? restoreEntryFromSnapshot(store, id)
-          : initState(store, id, initialState),
+      // server we have to always use initState since we do not have snapshots.
+      canUseDOM()
+        ? () => restoreEntryFromSnapshot(store, id)
+        : () => initState(store, id, initialState),
       (update: Update<T>) => updateState(store, id, update),
       (callback: () => void) =>
         subscribeState(store, id, persistent, callback, guard),

@@ -44,7 +44,7 @@ export interface Store {
    *
    * @internal
    */
-  readonly snapshot?: Map<string, Entry<any> | undefined>;
+  readonly snapshot?: Map<string, Entry<any> | undefined> | undefined;
   /**
    * Developer-mode metadata for initialized entries, tracking settings and
    * attached component-instances
@@ -75,7 +75,7 @@ export function createStore(): Store {
  * @see React.renderToPipeableStream
  */
 export function fromSnapshot(
-  snapshot: Map<string, Entry<string> | undefined>
+  snapshot: Map<string, Entry<string> | undefined> | undefined
 ): Store {
   return {
     data: new Map(),

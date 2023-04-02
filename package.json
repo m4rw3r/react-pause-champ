@@ -11,11 +11,12 @@
     "build": "npm run build:js && npm run build:d.ts",
     "build:d.ts": "rollup -c",
     "build:js": "vite build",
-    "clean": "rm -rf coverage dist",
     "check": "tsc --project tsconfig.json --noEmit",
+    "clean": "rm -rf coverage dist",
     "dist": "npm run check && npm run test && npm run format:check && npm run build",
     "format": "prettier -w src *.ts *.js",
     "format:check": "prettier -c src *.ts *.js",
+    "prepack": "npm run dist",
     "test": "jest",
     "test:watch:": "jest --watch"
   },
@@ -30,6 +31,13 @@
   ],
   "author": "Martin Wernstål <m4rw3r@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m4rw3r/react-pause-champ"
+  },
+  "files": [
+    "dist/*"
+  ],
   "peerDependencies": {
     "react": "^18"
   },

@@ -11,6 +11,7 @@ import { Entry, newEntry, unwrapEntry } from "./entry";
 import {
   Store,
   Unregister,
+  listen,
   getEntry,
   setEntry,
   restoreEntryFromSnapshot,
@@ -208,7 +209,7 @@ function subscribeState(
   guard: MutableRefObject<Guard | undefined>
 ): Unregister {
   // Subscribe to updates, but also drop the state-data if we are unmounting
-  const unsubscribe = store.listen(id, callback);
+  const unsubscribe = listen(store, id, callback);
   // Include the id so we can ensure we still drop when they do differ
   const nonce = { id };
 

@@ -169,7 +169,7 @@ export function stateDataIteratorNext(
   const items = new Map();
   const suspended = [];
 
-  for (const [k, v] of store._data) {
+  for (const [k, v] of store.data) {
     if (emitted.has(k)) {
       continue;
     }

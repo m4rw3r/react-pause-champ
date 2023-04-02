@@ -9,7 +9,7 @@ import {
 // import { renderToPipeableStream } from "react-dom/server";
 import { render, act } from "@testing-library/react";
 
-import { Store, Provider, fromSnapshot, useChamp } from "./index";
+import { Provider, createStore, fromSnapshot, useChamp } from "./index";
 import { getEntry, getSnapshot } from "./store";
 
 interface Ref<T> {
@@ -114,13 +114,13 @@ function renderHook<P extends any[], T>(
   return { container, result, rerender, error, unmount };
 }
 
-let store = new Store();
+let store = createStore();
 
 jest.useFakeTimers();
 // TODO: How to duplicate and run the test with <React.StrictMode/>?
 
 beforeEach(() => {
-  store = new Store();
+  store = createStore();
 });
 
 afterEach(() => {

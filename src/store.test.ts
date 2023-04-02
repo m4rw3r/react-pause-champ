@@ -1,13 +1,13 @@
-import { Store, fromSnapshot } from "./store";
+import { createStore, fromSnapshot } from "./store";
 
-describe("new Store()", () => {
+describe("createStore()", () => {
   it("creates a new empty instance", () => {
-    const s = new Store();
+    const s = createStore();
 
-    expect(s._data).toEqual(new Map());
-    expect(s._listeners).toEqual(new Map());
-    expect(s._snapshot).toBeUndefined();
-    expect(s._meta).toBeUndefined();
+    expect(s.data).toEqual(new Map());
+    expect(s.listeners).toEqual(new Map());
+    expect(s.snapshot).toBeUndefined();
+    expect(s.meta).toEqual(new Map());
   });
 });
 
@@ -16,9 +16,9 @@ describe("fromSnapshot()", () => {
     const m = new Map();
     const s = fromSnapshot(m);
 
-    expect(s._data).toEqual(new Map());
-    expect(s._listeners).toEqual(new Map());
-    expect(s._snapshot).toBe(m);
-    expect(s._meta).toBeUndefined();
+    expect(s.data).toEqual(new Map());
+    expect(s.listeners).toEqual(new Map());
+    expect(s.snapshot).toBe(m);
+    expect(s.meta).toEqual(new Map());
   });
 });

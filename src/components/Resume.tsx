@@ -9,7 +9,7 @@ import { Store } from "../store";
  */
 export interface ResumeProps {
   /**
-   * Java-Script global variable/path to store the server snapshot,
+   * JavaScript global variable identifier/path to store the server snapshot,
    * eg. `window.store`.
    */
   identifier: string;
@@ -31,13 +31,14 @@ export interface ResumeProps {
  *
  * // client
  * const store = fromSnapshot(window.snapshot);
- * const container = document.getElementById('root');
+ * const container = document.getElementById("root");
  *
  * hydrateRoot(
  *   container,
  *   <Provider store={store}>
  *     <App />
- *   </Provider>
+ *   </Provider>,
+ *   container
  * );
  * ```
  */

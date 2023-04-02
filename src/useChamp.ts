@@ -59,6 +59,8 @@ export interface UseChampOptions {
 /**
  * Guard preventing multiple destructors from running based on object identity
  * as well as the stored id.
+ *
+ * @internal
  */
 interface Guard {
   id: string;

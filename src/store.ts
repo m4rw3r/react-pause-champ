@@ -32,7 +32,7 @@ export type EntryMeta = {
 export type EmptyObject = { [n: string]: never };
 
 /**
- * Container for application state data.
+ * A container for application state data.
  */
 export class Store {
   /**
@@ -40,12 +40,11 @@ export class Store {
    */
   readonly _data: Map<string, Entry<any>> = new Map();
   /**
-   * @internal
+   * State-data.
    */
   readonly _listeners: Map<string, Set<Listener<any>>> = new Map();
   /**
-   * Developer-mode metadata for initialized entries, tracking settings and
-   * attached component-instances
+   * Listeners for updates to `data`.
    *
    * @internal
    */
@@ -60,9 +59,10 @@ export class Store {
 
   // TODO: Maybe make internal too? Or what are the uses for developer-mode?
   /**
-   * Listen to state-updates / errors.
+   * Developer-mode metadata for initialized entries, tracking settings and
+   * attached component-instances
    *
-   * Call the returned function to unregister.
+   * @internal
    */
   listen<T>(id: string, listener: Listener<T>): Unregister {
     if (!this._listeners.has(id)) {
@@ -82,7 +82,7 @@ export class Store {
 /**
  * Creates a new Store from a snapshot.
  *
- * Nulls correspond to entries which we are still waiting for, and should
+ * Undefined correspond to entries which we are still waiting for, and should
  * arrive once the component has finished rendering on the server.
  *
  * @see Resume

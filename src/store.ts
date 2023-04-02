@@ -107,6 +107,8 @@ export function listen(
 }
 
 /**
+ * Returns the data-entry for the given id.
+ *
  * @internal
  */
 export function getEntry<T>(store: Store, id: string): Entry<T> | undefined {
@@ -114,6 +116,8 @@ export function getEntry<T>(store: Store, id: string): Entry<T> | undefined {
 }
 
 /**
+ * Returns the snapshot value for the given id.
+ *
  * @internal
  */
 export function getSnapshot(store: Store, id: string): Entry<any> | undefined {

@@ -61,7 +61,7 @@ export function createStore(): Store {
   return {
     data: new Map(),
     listeners: new Map(),
-    ...(process.env.NODE_ENV !== "production" ? { meta: new Map() } : {}),
+    ...(process.env.NODE_ENV !== "production" && { meta: new Map() }),
   };
 }
 
@@ -81,7 +81,7 @@ export function fromSnapshot(
     data: new Map(),
     listeners: new Map(),
     snapshot,
-    ...(process.env.NODE_ENV !== "production" ? { meta: new Map() } : {}),
+    ...(process.env.NODE_ENV !== "production" && { meta: new Map() }),
   };
 }
 
@@ -229,11 +229,7 @@ export function checkEntry(
   cid: EmptyObject
 ): void {
   // This should be populated if we are in dev-mode
-  if (!store.meta) {
-    return;
-  }
-
-  const meta = store.meta.get(id);
+  const meta = store.meta!.get(id);
 
   if (meta) {
     if (meta.persistent !== persistent) {
@@ -246,6 +242,6 @@ export function checkEntry(
       throw new Error(`State '${id}' is already mounted in another component.`);
     }
   } else {
-    store.meta.set(id, { persistent, cid });
+    store.meta!.set(id, { persistent, cid });
   }
 }

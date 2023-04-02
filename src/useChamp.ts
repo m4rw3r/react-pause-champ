@@ -84,26 +84,7 @@ export function useChamp<T>(
   const { persistent = false } = options;
 
   if (process.env.NODE_ENV !== "production") {
-    // Unique object for this component instance, used to detect multiple
-    // useChamp() attaching on the same id without persistent flag in
-    // developer mode
-    const cid = useRef<{}>();
-
-    // TODO: useEffect only runs on client, how do we check meta-info
-    // on server-render?
-
-    // When component is suspended during initialization, all hooks are
-    // discarded which means we cannot do tracking inline.
-    // This is never run when we suspend, so we do not have the issue
-    // by using useEffect.
-    useEffect(() => {
-      if (!cid.current) {
-        // Unique ID when we use strict equality
-        cid.current = {};
-      }
-
-      checkEntry(store, id, persistent, cid.current);
-    }, [store, id, persistent]);
+    useCheckEntry(store, id, persistent);
   }
 
   // Guard value for cleanup callback, useRef() will remain the same even in
@@ -131,6 +112,32 @@ export function useChamp<T>(
   );
 
   return [value, update];
+}
+
+/**
+ * @internal
+ */
+function useCheckEntry(store: Store, id: string, persistent: boolean): void {
+  // Unique object for this component instance, used to detect multiple
+  // useChamp() attaching on the same id without persistent flag in
+  // developer mode
+  const cid = useRef<{}>();
+
+  // TODO: useEffect only runs on client, how do we check meta-info
+  // on server-render?
+
+  // When component is suspended during initialization, all hooks are
+  // discarded which means we cannot do tracking inline.
+  // This is never run when we suspend, so we do not have the issue
+  // by using useEffect.
+  useEffect(() => {
+    if (!cid.current) {
+      // Unique ID when we use strict equality
+      cid.current = {};
+    }
+
+    checkEntry(store, id, persistent, cid.current);
+  }, [store, id, persistent]);
 }
 
 /**

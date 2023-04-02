@@ -6,10 +6,10 @@ import {
   Suspense,
   createElement,
 } from "react";
-// import { renderToPipeableStream } from "react-dom/server";
 import { render, act } from "@testing-library/react";
 
 import { Provider, createStore, fromSnapshot, useChamp } from "./index";
+import { canUseDOM } from "./useChamp";
 import { getEntry, getSnapshot } from "./store";
 
 interface Ref<T> {
@@ -125,6 +125,12 @@ beforeEach(() => {
 
 afterEach(() => {
   console.error = oldConsoleError;
+});
+
+describe("canUseDOM()", () => {
+  it("should return true in browser", () => {
+    expect(canUseDOM()).toBe(true);
+  });
 });
 
 describe("useChamp()", () => {

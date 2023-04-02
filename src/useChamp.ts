@@ -98,7 +98,13 @@ export function useChamp<T>(
   const [getSnapshot, getServerSnapshot, update, subscribe] = useMemo(
     () => [
       () => initState(store, id, initialState),
-      () => restoreEntryFromSnapshot(store, id),
+      // We have to swap to restore when we have a DOM and can hydrate, on the
+      // server we have to always use initState since we do not have any
+      // snapshots.
+      () =>
+        canUseDOM()
+          ? restoreEntryFromSnapshot(store, id)
+          : initState(store, id, initialState),
       (update: Update<T>) => updateState(store, id, update),
       (callback: () => void) =>
         subscribeState(store, id, persistent, callback, guard),
@@ -240,4 +246,15 @@ function subscribeState(
   // If we are a persistent state, just return the plain unsubscribe
   // since we will not drop the state entry.
   return persistent ? unsubscribe : drop;
+}
+
+/**
+ * @internal
+ */
+export function canUseDOM(): boolean {
+  return Boolean(
+    typeof window !== "undefined" &&
+      window.document &&
+      window.document.createElement
+  );
 }

@@ -61,7 +61,7 @@ describe("canUseDOM()", () => {
 });
 
 describe("useChamp()", () => {
-  it.only("throws when no <Provider/> is used", async () => {
+  it("throws when no <Provider/> is used", async () => {
     const MyComponent = () => {
       const [data] = useChamp("test", 123);
 
@@ -73,3 +73,5 @@ describe("useChamp()", () => {
     );
   });
 });
+
+// TODO: More tests

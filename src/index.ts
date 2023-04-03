@@ -1,5 +1,5 @@
 export type { Entry } from "./entry";
-export type { Store } from "./store";
+export type { Snapshot, Store } from "./store";
 export type {
   Init,
   InitFn,

@@ -8,6 +8,14 @@ export type Callback = () => unknown;
  * Function used to unregister a listener.
  */
 export type Unregister = () => void;
+/**
+ * Snapshot from <Resume/>, undefined represents data which is currently being
+ * processed at the server and will be streamed by
+ * `renderToPipeableStream`/`renderToReadableStream` later.
+ *
+ * @see Resume
+ */
+export type Snapshot = Map<string, Entry<string> | undefined>;
 
 /**
  * @internal
@@ -74,9 +82,7 @@ export function createStore(): Store {
  * @see Resume
  * @see React.renderToPipeableStream
  */
-export function fromSnapshot(
-  snapshot: Map<string, Entry<string> | undefined> | undefined
-): Store {
+export function fromSnapshot(snapshot: Snapshot | undefined): Store {
   return {
     data: new Map(),
     listeners: new Map(),

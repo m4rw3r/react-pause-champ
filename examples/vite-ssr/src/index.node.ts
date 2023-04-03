@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 import express from "express";
+import { fileURLToPath } from "node:url";
 import { renderToPipeableStream } from "react-dom/server";
 import { createAppRoot } from "./server";
 
@@ -29,6 +30,10 @@ function handler(_req: Request, res: Response): void {
 
 const app = express();
 
+// Serve static assets, production should preferably serve these through a
+// reverse proxy or similar
+app.use(express.static(fileURLToPath(new URL("../client", import.meta.url))));
+// Our application handler
 app.use(handler);
 
 app.listen(3000);

@@ -180,7 +180,7 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
   if (!entry || entry.kind !== "value") {
     throw new Error(
       `State update of '${id}' requires a value (was ${
-        !entry ? "empty" : entry.kind
+        entry ? entry.kind : "empty"
       }).`
     );
   }

@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { Transform } from "node:stream";
 import viteDevServer from "vavite/vite-dev-server";
@@ -11,7 +11,7 @@ type Callback = (error: Error | null, chunk: string | null) => void;
  * Stream-transform which adds the Vite HMR code to the initial server-rendered
  * chunk. The remaining suspended chunks will be sent as usual.
  */
-function createViteDevHtmlTransform(path: path) {
+function createViteDevHtmlTransform(path: string) {
   let transformed = false;
 
   return new Transform({
@@ -35,7 +35,11 @@ function createViteDevHtmlTransform(path: path) {
 // All paths are relative to project root
 const clientEntryPath = "/src/index.client.tsx";
 
-export default function handler(req: Request, res: Response): void {
+// Since this is a handler, we cannot use any ExpressJS types
+export default function handler(
+  req: IncomingMessage,
+  res: ServerResponse
+): void {
   const stream = renderToPipeableStream(createAppRoot(), {
     // Vite uses module-bundling:
     bootstrapModules: [clientEntryPath],
@@ -43,12 +47,14 @@ export default function handler(req: Request, res: Response): void {
       res.setHeader("Content-Type", "text/html");
 
       // Pipe the stream through the development-mode transform
-      stream.pipe(createViteDevHtmlTransform(req.originalUrl)).pipe(res);
+      stream.pipe(createViteDevHtmlTransform(req.url ?? "/")).pipe(res);
     },
     onShellError() {
       res.statusCode = 500;
+
       res.setHeader("Content-Type", "text/html");
-      res.send("Error");
+      res.write("Error");
+      res.end();
     },
   });
 }

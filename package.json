@@ -11,7 +11,7 @@
     "build": "npm run build:js && npm run build:d.ts",
     "build:d.ts": "rollup -c",
     "build:js": "vite build",
-    "check": "tsc --project tsconfig.json --noEmit",
+    "check": "tsc --noEmit",
     "clean": "rm -rf coverage dist",
     "dist": "npm run check && npm run test && npm run format:check && npm run build",
     "format": "prettier -w src *.ts *.js",

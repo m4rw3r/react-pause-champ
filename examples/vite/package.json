@@ -2,12 +2,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "prod": "npm run build && npm run start",
     "build": "vavite --mode=production",
+    "check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "dev": "vite",
     "format": "prettier -w src *.ts",
-    "start": "node dist/server",
-    "preview": "vite preview"
+    "format:check": "prettier -c src *.ts",
+    "preview": "vite preview",
+    "prod": "npm run build && npm run start",
+    "start": "node dist/server"
   },
   "dependencies": {
     "@m4rw3r/react-pause-champ": "../..",

@@ -9,7 +9,7 @@ export default {
         build: {
           outDir: "dist/client",
           manifest: true,
-          rollupOptions: { input: "src/client/index.tsx" },
+          rollupOptions: { input: "src/index.client.tsx" },
         },
       },
     },
@@ -27,9 +27,9 @@ export default {
     react(),
     vavite({
       // Production:
-      serverEntry: "src/server/node.ts",
+      serverEntry: "src/index.node.ts",
       // Development:
-      handlerEntry: "src/server/vite-dev.ts",
+      handlerEntry: "src/index.vite-dev.ts",
       serveClientAssetsInDev: true,
     }),
   ],

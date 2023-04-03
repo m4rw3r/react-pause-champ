@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { Provider, fromSnapshot } from "@m4rw3r/react-pause-champ";
-import { App } from "..";
+import { App } from "./App";
 
 // @ts-ignore Snapshot should always be accessible, or undefined, which is
 // also fine if no states are resuming

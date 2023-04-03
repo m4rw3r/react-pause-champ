@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { Transform } from "node:stream";
 import viteDevServer from "vavite/vite-dev-server";
 import { renderToPipeableStream } from "react-dom/server";
-import { createAppRoot } from ".";
+import { createAppRoot } from "./server";
 
 type Callback = (error: Error | null, chunk: string | null) => void;
 
@@ -27,7 +27,7 @@ function createViteDevHtmlTransform() {
 }
 
 export default function handler(_req: Request, res: Response): void {
-  const clientEntryPath = "src/client/index.tsx";
+  const clientEntryPath = "src/index.client.tsx";
 
   const stream = renderToPipeableStream(createAppRoot(), {
     // Vite uses module-bundling:

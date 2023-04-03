@@ -31,6 +31,9 @@ export default {
       // Development:
       handlerEntry: "src/index.vite-dev.ts",
       serveClientAssetsInDev: true,
+      // If we want to use a server-entry for both, remove the `handlerEntry`
+      // and use something like the following:
+      // serverEntry: mode === "development" ? "src/index.vite-dev.ts" : "src/index.node.ts",
     }),
   ],
 };

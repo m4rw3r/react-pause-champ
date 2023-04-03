@@ -7,9 +7,10 @@ import { createAppRoot } from "./server";
 // @ts-ignore We build server after client, so this is accessible
 import { default as manifest } from "../dist/client/manifest.json";
 
-function handler(_req: Request, res: Response): void {
-  const { "src/client/index.tsx": clientEntryPath } = manifest;
+// All paths are relative to project root
+const { "src/index.client.tsx": clientEntryPath } = manifest;
 
+function handler(_req: Request, res: Response): void {
   const stream = renderToPipeableStream(createAppRoot(), {
     // Production has normal JavaScript bundles:
     bootstrapScripts: [clientEntryPath.file],

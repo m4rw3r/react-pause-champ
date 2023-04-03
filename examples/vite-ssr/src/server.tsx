@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { Provider, Resume, createStore } from "@m4rw3r/react-pause-champ";
 import { App } from "./App";
 
+// Full HTML skeleton
 export function Html(): JSX.Element {
   return (
     <html>
@@ -9,6 +10,7 @@ export function Html(): JSX.Element {
         <title>My test app</title>
       </head>
       <body>
+        {/* React recommends to not mount the application directly in body */}
         <div id="app-root">
           <App />
         </div>

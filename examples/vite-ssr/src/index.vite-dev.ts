@@ -7,15 +7,21 @@ import { createAppRoot } from "./server";
 
 type Callback = (error: Error | null, chunk: string | null) => void;
 
-function createViteDevHtmlTransform() {
+/**
+ * Stream-transform which adds the Vite HMR code to the initial server-rendered
+ * chunk. The remaining suspended chunks will be sent as usual.
+ */
+function createViteDevHtmlTransform(path: path) {
   let transformed = false;
 
   return new Transform({
     transform(chunk: string, _encoding: string, callback: Callback) {
       if (!transformed) {
+        // The first chunk should contain the full <head>
         transformed = true;
 
-        viteDevServer!.transformIndexHtml("ASDF", chunk.toString()).then(
+        // The path is used for some relative URLs/imports
+        viteDevServer!.transformIndexHtml(path, chunk.toString()).then(
           (data) => callback(null, data),
           (error) => callback(error, null)
         );
@@ -26,16 +32,18 @@ function createViteDevHtmlTransform() {
   });
 }
 
-export default function handler(_req: Request, res: Response): void {
-  const clientEntryPath = "src/index.client.tsx";
+// All paths are relative to project root
+const clientEntryPath = "/src/index.client.tsx";
 
+export default function handler(req: Request, res: Response): void {
   const stream = renderToPipeableStream(createAppRoot(), {
     // Vite uses module-bundling:
     bootstrapModules: [clientEntryPath],
     onShellReady() {
       res.setHeader("Content-Type", "text/html");
 
-      stream.pipe(createViteDevHtmlTransform()).pipe(res);
+      // Pipe the stream through the development-mode transform
+      stream.pipe(createViteDevHtmlTransform(req.originalUrl)).pipe(res);
     },
     onShellError() {
       res.statusCode = 500;

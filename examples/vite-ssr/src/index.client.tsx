@@ -12,6 +12,7 @@ if (!root) {
   throw new Error("Failed to obtain #app-root element");
 }
 
+// Do not hydrate the full HTML-document, just the application-part
 hydrateRoot(
   root,
   <Provider store={store}>

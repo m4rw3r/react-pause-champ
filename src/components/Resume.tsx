@@ -168,7 +168,7 @@ export function ResumeScript({
 export function stateDataIteratorNext(
   store: Store,
   emitted?: Set<string> | undefined,
-  suspended?: Set<string> | undefined
+  suspended?: Set<Promise<any>> | undefined
 ): EntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   suspended = suspended ? new Set(suspended) : new Set();

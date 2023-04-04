@@ -44,7 +44,9 @@ export interface ResumeProps {
  * );
  * ```
  */
-export function Resume({ identifier = "window.snapshot" }: ResumeProps): JSX.Element {
+export function Resume({
+  identifier = "window.snapshot",
+}: ResumeProps): JSX.Element {
   const store = useContext(Context);
 
   if (!store) {

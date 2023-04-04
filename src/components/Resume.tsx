@@ -159,7 +159,7 @@ export function ResumeScript({
     );
   }
 
-  return <script defer dangerouslySetInnerHTML={{ __html: parts.join(";") }} />;
+  return <script async dangerouslySetInnerHTML={{ __html: parts.join(";") }} />;
 }
 
 /**

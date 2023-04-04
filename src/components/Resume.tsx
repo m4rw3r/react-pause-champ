@@ -165,22 +165,31 @@ export function ResumeScript({
  */
 export function stateDataIteratorNext(
   store: Store,
-  emitted?: Set<string> | undefined
+  emitted?: Set<string> | undefined,
+  suspended?: Set<string> | undefined
 ): EntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
+  suspended = suspended ? new Set(suspended) : new Set();
   const items = new Map();
-  const suspended = [];
+  const promises = [];
 
   for (const [k, v] of store.data) {
-    if (emitted.has(k)) {
-      continue;
-    }
-
     if (v.kind === "suspended") {
-      suspended.push(v.value);
+      promises.push(v.value);
 
-      continue;
+      // Skip emitting for promises we already have placeholders for
+      if (suspended.has(v.value)) {
+        continue;
+      }
+
+      suspended.add(v.value);
     } else {
+      // Do not emit values or errors again, the component should have already
+      // resumed on the client
+      if (emitted.has(k)) {
+        continue;
+      }
+
       emitted.add(k);
     }
 
@@ -188,11 +197,11 @@ export function stateDataIteratorNext(
   }
 
   function nextIterator(): EntryIterator {
-    return stateDataIteratorNext(store, emitted);
+    return stateDataIteratorNext(store, emitted, suspended);
   }
 
   const entry = newEntry(
-    suspended.length > 0 ? Promise.any(suspended).then(nextIterator) : undefined
+    promises.length > 0 ? Promise.any(promises).then(nextIterator) : undefined
   );
 
   return {

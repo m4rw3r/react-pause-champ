@@ -2,57 +2,10 @@
  * @jest-environment node
  */
 
-import type { ReactNode } from "react";
-
-import { Writable } from "node:stream";
-import { createElement } from "react";
-import { renderToPipeableStream } from "react-dom/server";
-import { canUseDOM, useChamp } from "./useChamp";
-
-type Callback = () => void;
-
-interface StreamParts extends Promise<string> {
-  buffer: Array<string>;
-}
-
-function renderToStream(component: ReactNode): StreamParts {
-  const buffer: Array<string> = [];
-  const promise: any = new Promise<string>((resolve, reject) => {
-    const stream = new Writable();
-
-    stream._write = function (
-      chunk: string,
-      _encoding: string,
-      callback: Callback
-    ) {
-      buffer.push(chunk.toString());
-
-      callback();
-    };
-
-    stream._final = function (callback: Callback) {
-      resolve(buffer.join(""));
-
-      callback();
-    };
-
-    const { pipe } = renderToPipeableStream(component, {
-      onShellReady() {
-        pipe(stream);
-      },
-      onShellError(error) {
-        reject(error);
-      },
-      onError(error) {
-        reject(error);
-      },
-    });
-  });
-
-  promise.buffer = buffer;
-
-  return promise;
-}
+import { Suspense, createElement } from "react";
+import { canUseDOM } from "./useChamp";
+import { Provider, useChamp, createStore } from ".";
+import { renderToStream } from "./testutils.node";
 
 describe("canUseDOM()", () => {
   it("should return false in node", () => {
@@ -71,6 +24,171 @@ describe("useChamp()", () => {
     await expect(renderToStream(<MyComponent />)).rejects.toEqual(
       new Error("useChamp() must be inside a <Provider/>.")
     );
+  });
+
+  it("renders the value", async () => {
+    const MyComponent = () => {
+      const [data] = useChamp("test", 123);
+
+      return <p>{data}</p>;
+    };
+    const store = createStore();
+
+    await expect(
+      renderToStream(
+        <Provider store={store}>
+          <MyComponent />
+        </Provider>
+      )
+    ).resolves.toEqual("<p>123</p>");
+  });
+
+  it("waits with rendering in async and produces the full result at once", async () => {
+    let resolveWaiting: (str: string) => void | undefined;
+    const waiting = new Promise<string>((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const MyComponent = () => {
+      const [data] = useChamp("test", () => waiting);
+
+      return <p>{data}</p>;
+    };
+    const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>
+    );
+
+    expect(stream.buffer).toHaveLength(0);
+
+    resolveWaiting!("asdf");
+
+    expect(stream.buffer).toHaveLength(0);
+    await expect(stream).resolves.toEqual("<p>asdf</p>");
+    expect(stream.buffer).toHaveLength(1);
+  });
+
+  it("rethrows errors in the render-path", async () => {
+    const MyComponent = () => {
+      const [data] = useChamp("test", () => {
+        throw new Error("Error test");
+      });
+
+      return <p>{data}</p>;
+    };
+    const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>
+    );
+
+    expect(stream.buffer).toHaveLength(0);
+    await expect(stream).rejects.toEqual(new Error("Error test"));
+    expect(stream.buffer).toHaveLength(0);
+  });
+
+  it("rethrows asynchronous errors in the render-path", async () => {
+    let rejectWaiting: (err: Error) => void | undefined;
+    const waiting = new Promise<string>((_, reject) => {
+      rejectWaiting = reject;
+    });
+
+    // We have to catch this because otherwise Jest/Node will think we do not
+    // yet have any installed handler since the shell has not yet started rendering
+    const catchFn = jest.fn();
+    waiting.catch(catchFn);
+
+    const MyComponent = () => {
+      const [data] = useChamp("test", () => waiting);
+
+      return <p>{data}</p>;
+    };
+    const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>
+    );
+
+    expect(stream.buffer).toHaveLength(0);
+
+    rejectWaiting!(new Error("The error from the test"));
+
+    expect(stream.buffer).toHaveLength(0);
+    await expect(stream).rejects.toEqual(new Error("The error from the test"));
+    expect(stream.buffer).toHaveLength(0);
+  });
+
+  it("with Suspense renders an empty component on async and then streams the update", async () => {
+    let resolveWaiting: (str: string) => void;
+    const waiting = new Promise<string>((resolve, _) => {
+      resolveWaiting = resolve;
+    });
+    const MyComponent = () => {
+      const [data] = useChamp("test", () => waiting);
+
+      return <p>{data}</p>;
+    };
+    const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <Suspense fallback={"foobar"}>
+          <MyComponent />
+        </Suspense>
+      </Provider>
+    );
+
+    expect(stream.buffer).toHaveLength(0);
+    // Note: The syntax for placeholders can be changed at some point by React
+    await expect(stream.chunk()).resolves.toEqual(
+      `<!--$?--><template id="B:0"></template>foobar<!--/$-->`
+    );
+    expect(stream.buffer).toHaveLength(1);
+
+    resolveWaiting!("asdf");
+
+    expect(stream.buffer).toHaveLength(1);
+    await expect(stream).resolves.toEqual(
+      `<!--$?--><template id="B:0"></template>foobar<!--/$--><div hidden id="S:0"><p>asdf</p></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`
+    );
+    expect(stream.buffer).toHaveLength(2);
+  });
+
+  it("with Suspense renders and empty component and then updates with the thrown version", async () => {
+    let rejectWaiting: (err: Error) => void | undefined;
+    const waiting = new Promise<string>((_, reject) => {
+      rejectWaiting = reject;
+    });
+
+    const MyComponent = () => {
+      const [data] = useChamp("test", () => waiting);
+
+      return <p>{data}</p>;
+    };
+    const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <Suspense fallback={"foobar"}>
+          <MyComponent />
+        </Suspense>
+      </Provider>
+    );
+
+    expect(stream.buffer).toHaveLength(0);
+
+    await expect(stream.chunk()).resolves.toEqual(
+      `<!--$?--><template id="B:0"></template>foobar<!--/$-->`
+    );
+
+    rejectWaiting!(new Error("The error from the test"));
+
+    expect(stream.buffer).toHaveLength(1);
+    await expect(stream).rejects.toEqual(new Error("The error from the test"));
+    expect(stream.buffer).toHaveLength(2);
+    expect(stream.buffer[1]).toMatch(/"The error from the test"/);
+    expect(stream.buffer[1]).toMatch(/at MyComponent/);
   });
 });
 

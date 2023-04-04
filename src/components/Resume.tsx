@@ -10,9 +10,11 @@ import { Store } from "../store";
 export interface ResumeProps {
   /**
    * JavaScript global variable identifier/path to store the server snapshot,
-   * eg. `window.store`.
+   * eg. `window.snapshot`.
+   *
+   * Default: "window.snapshot"
    */
-  identifier: string;
+  identifier?: string | undefined;
 }
 
 /**
@@ -42,7 +44,7 @@ export interface ResumeProps {
  * );
  * ```
  */
-export function Resume({ identifier }: ResumeProps): JSX.Element {
+export function Resume({ identifier = "window.snapshot" }: ResumeProps): JSX.Element {
   const store = useContext(Context);
 
   if (!store) {

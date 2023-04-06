@@ -59,9 +59,12 @@ function ServerCounter(): JSX.Element {
     <div>
       <p>{value}</p>
       <button
-        onClick={update(
-          async (old) => (await fetchCounterUpdate({ newValue: old + 1 })).value
-        )}
+        onClick={() =>
+          update(
+            async (old) =>
+              (await fetchCounterUpdate({ newValue: old + 1 })).value
+          )
+        }
       >
         Increment
       </button>

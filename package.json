@@ -14,7 +14,7 @@
     "check": "tsc --noEmit",
     "lint": "eslint .",
     "clean": "rm -rf coverage dist",
-    "dist": "npm run check && npm run test && npm run format:check && npm run build && npm run eslint && npm run examples",
+    "dist": "npm run check && npm run test && npm run format:check && npm run build && npm run lint && npm run examples",
     "examples": "cd examples/vite-ssr && npm run dist",
     "format": "prettier -w src *.ts *.js *.cjs",
     "format:check": "prettier -c src *.ts *.js *.cjs",

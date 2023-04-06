@@ -20,29 +20,29 @@ export interface ResumeProps {
 /**
  * Component which first creates a server-snapshot `Map`, then populates this
  * map with state data as it is resolved. Compatible with
- * `renderToPipeableStream()`.
+ * `renderToPipeableStream()`/`renderToReadableStream()`.
  *
  * Usage:
  *
  * ```typescript
- * // server
+ * // server.js
  * <Provider store={store}>
  *   <App />
- *   <Resume identifier="window.snapshot" />
+ *   <Resume />
  * </Provider>
  *
- * // client
- * const store = fromSnapshot(window.snapshot);
- * const container = document.getElementById("root");
- *
+ * // client.js
  * hydrateRoot(
- *   container,
- *   <Provider store={store}>
+ *   document.getElementById("root"),
+ *   <Provider store={fromSnapshot(window.snapshot)}>
  *     <App />
- *   </Provider>,
- *   container
+ *   </Provider>
  * );
  * ```
+ *
+ * @see fromSnapshot
+ * @see React.hydrateRoot
+ * @see React.renderToPipeableStream
  */
 export function Resume({
   identifier = "window.snapshot",

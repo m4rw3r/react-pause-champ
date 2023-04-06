@@ -8,7 +8,7 @@ Isomorphic Async-aware State using Suspense.
 
 Recommended to use `createRoot`/`hydrateRoot` on the client to use batching, in
 the case of asynchronous updates which instantly complete. On the server
-`renderToPipeableStream`/ `renderToReadableStream` is required for asynchronous
+`renderToPipeableStream`/`renderToReadableStream` is required for asynchronous
 initializations and Suspense support.
 
 ## Example

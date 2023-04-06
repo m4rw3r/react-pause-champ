@@ -18,9 +18,9 @@ interface ComponentEvent {
 }
 
 describe("useRef({})", () => {
-  it("should be identical over multiple renders", async () => {
+  it("should be identical over multiple renders", () => {
     let i = 0;
-    const events: Array<ComponentEvent> = [];
+    const events: ComponentEvent[] = [];
 
     const MyComponent = (): JSX.Element => {
       const ref = useRef({ n: ++i });
@@ -45,9 +45,9 @@ describe("useRef({})", () => {
     expect(events[0]!.ref).toBe(events[1]!.ref);
   });
 
-  it("should be identical over multiple renders in StrictMode, with the exception of the initial render", async () => {
+  it("should be identical over multiple renders in StrictMode, with the exception of the initial render", () => {
     let i = 0;
-    const events: Array<ComponentEvent> = [];
+    const events: ComponentEvent[] = [];
 
     const MyComponent = () => {
       const ref = useRef({ n: ++i });
@@ -101,7 +101,7 @@ describe("useRef({})", () => {
       },
       () => "error"
     );
-    const events: Array<ComponentEvent> = [];
+    const events: ComponentEvent[] = [];
 
     const MyComponent = () => {
       const ref = useRef({ n: ++i });
@@ -117,6 +117,7 @@ describe("useRef({})", () => {
       }, [ref]);
 
       if (typeof t === "object" && typeof t.then === "function") {
+        // eslint-disable-next-line @typescript-eslint/no-throw-literal
         throw t;
       }
 
@@ -157,10 +158,10 @@ describe("useRef({})", () => {
 });
 
 describe("useSyncExternalStore()", () => {
-  it("2x init, subscribe, init", async () => {
+  it("2x init, subscribe, init", () => {
     let i = 0;
     const dataObj = { name: "data-obj" };
-    const events: Array<ComponentEvent> = [];
+    const events: ComponentEvent[] = [];
 
     const MyComponent = () => {
       const ref = useRef({ n: ++i });
@@ -234,10 +235,10 @@ describe("useSyncExternalStore()", () => {
     expect(container.innerHTML).toEqual('<p>{"name":"data-obj"}</p>');
   });
 
-  it("2x init, subscribe, init, StrictMode", async () => {
+  it("2x init, subscribe, init, StrictMode", () => {
     let i = 0;
     const dataObj = { name: "data-obj" };
-    const events: Array<ComponentEvent> = [];
+    const events: ComponentEvent[] = [];
 
     const MyComponent = () => {
       const ref = useRef({ n: ++i });

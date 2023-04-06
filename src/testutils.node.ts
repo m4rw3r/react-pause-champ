@@ -7,7 +7,7 @@ export type Callback = () => void;
 
 export interface StreamParts extends Promise<string> {
   chunk: () => Promise<string>;
-  buffer: Array<string>;
+  buffer: string[];
 }
 
 /**
@@ -18,8 +18,8 @@ export interface StreamParts extends Promise<string> {
 export function renderToStream(component: ReactNode): StreamParts {
   let nextChunk: Promise<string> | undefined;
   let resolveNext: ((chunk: string) => void) | undefined;
-  const buffer: Array<string> = [];
-  const promise: any = new Promise<string>((resolve, reject) => {
+  const buffer: string[] = [];
+  const promise = new Promise<string>((resolve, reject) => {
     const stream = new Writable();
 
     stream._write = function (
@@ -46,9 +46,9 @@ export function renderToStream(component: ReactNode): StreamParts {
       callback();
     };
 
-    const { pipe } = renderToPipeableStream(component, {
+    const result = renderToPipeableStream(component, {
       onShellReady() {
-        pipe(stream);
+        result.pipe(stream);
       },
       onShellError(error) {
         reject(error);
@@ -57,7 +57,7 @@ export function renderToStream(component: ReactNode): StreamParts {
         reject(error);
       },
     });
-  });
+  }) as StreamParts;
 
   promise.buffer = buffer;
 

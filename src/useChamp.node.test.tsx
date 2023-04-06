@@ -44,8 +44,8 @@ describe("useChamp()", () => {
   });
 
   it("waits with rendering in async and produces the full result at once", async () => {
-    let resolveWaiting: (str: string) => void | undefined;
-    const waiting = new Promise<string>((resolve, _) => {
+    let resolveWaiting: (str: string) => void;
+    const waiting = new Promise<string>((resolve) => {
       resolveWaiting = resolve;
     });
     const MyComponent = () => {
@@ -90,7 +90,7 @@ describe("useChamp()", () => {
   });
 
   it("rethrows asynchronous errors in the render-path", async () => {
-    let rejectWaiting: (err: Error) => void | undefined;
+    let rejectWaiting: (err: Error) => void;
     const waiting = new Promise<string>((_, reject) => {
       rejectWaiting = reject;
     });
@@ -123,7 +123,7 @@ describe("useChamp()", () => {
 
   it("with Suspense renders an empty component on async and then streams the update", async () => {
     let resolveWaiting: (str: string) => void;
-    const waiting = new Promise<string>((resolve, _) => {
+    const waiting = new Promise<string>((resolve) => {
       resolveWaiting = resolve;
     });
     const MyComponent = () => {
@@ -157,7 +157,7 @@ describe("useChamp()", () => {
   });
 
   it("with Suspense renders and empty component and then updates with the thrown version", async () => {
-    let rejectWaiting: (err: Error) => void | undefined;
+    let rejectWaiting: (err: Error) => void;
     const waiting = new Promise<string>((_, reject) => {
       rejectWaiting = reject;
     });

@@ -15,13 +15,13 @@ import { getEntry, getSnapshot } from "./store";
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
   current: T;
-  all: Array<T>;
+  all: T[];
 }
 
-interface RenderHookResult<P extends any[], T> {
+interface RenderHookResult<P extends unknown[], T> {
   container: HTMLElement;
   result: Ref<T>;
-  error: Ref<Error>;
+  error: Ref<unknown>;
   rerender: (...args: P) => void;
   unmount: () => void;
 }
@@ -44,16 +44,16 @@ function Wrapper({ children }: { children?: ReactNode }): JSX.Element {
   );
 }
 
-function renderHook<P extends any[], T>(
+function renderHook<P extends unknown[], T>(
   renderCallback: (...args: P) => T,
   options: { wrapper?: ComponentType } = {},
   ...args: P
 ): RenderHookResult<P, T> {
   const { wrapper: Wrapper = Fragment } = options;
-  let error: any = { current: undefined, all: [] };
-  let result: any = { current: undefined, all: [] };
+  const error: Ref<unknown> = { current: undefined, all: [] };
+  const result: Ref<unknown> = { current: undefined, all: [] };
 
-  function TestComponent({ args }: { args: any }) {
+  function TestComponent({ args }: { args: P }) {
     // We have to catch errors here, otherwise React wants to render our component
     // twice to make sure the error is "permanent", and react will output a ton of
     // duplicate errors on console.error, along with "helpful" dev-information
@@ -66,7 +66,7 @@ function renderHook<P extends any[], T>(
       result.all.push(pendingResult);
 
       return <p>TestComponent</p>;
-    } catch (hookError: any) {
+    } catch (hookError: unknown) {
       result.current = undefined;
 
       if (!(hookError instanceof Error)) {
@@ -111,7 +111,8 @@ function renderHook<P extends any[], T>(
   // <React.StrictMode/> and Hot-Module-Reloading
   jest.runAllTimers();
 
-  return { container, result, rerender, error, unmount };
+  // We type result as defined to avoid undefined checks all over the test
+  return { container, result: result as Ref<T>, rerender, error, unmount };
 }
 
 let store = createStore();
@@ -168,7 +169,7 @@ describe("useChamp()", () => {
   it("throws async errors", async () => {
     // This does not throw when expected since we need to have useEffect
     let rejectWaiting: (error: Error) => void;
-    const waiting: Promise<string> = new Promise((_, reject) => {
+    const waiting = new Promise<string>((_, reject) => {
       rejectWaiting = reject;
     });
     const rejection = new Error("throws async error test");
@@ -303,7 +304,7 @@ describe("useChamp()", () => {
     });
   });
 
-  it("throws an error if the id is already used by a non-persistent state", async () => {
+  it("throws an error if the id is already used by a non-persistent state", () => {
     const consoleError = jest.fn();
     // Silence errors
     console.error = consoleError;
@@ -658,7 +659,7 @@ describe("useChamp().update", () => {
 
   it("triggers re-render with async-updated values", async () => {
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -725,7 +726,7 @@ describe("useChamp().update", () => {
     console.error = consoleError;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -795,7 +796,7 @@ describe("useChamp().update", () => {
     console.error = consoleError;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -886,10 +887,10 @@ describe("useChamp().update", () => {
 
     let resolveWaiting: (obj: { name: string }) => void;
     let resolveWaiting2: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve) => {
       resolveWaiting = resolve;
     });
-    const waiting2 = new Promise((resolve, _) => {
+    const waiting2 = new Promise<{ name: string }>((resolve) => {
       resolveWaiting2 = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -936,13 +937,7 @@ describe("useChamp().update", () => {
     expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
     // Render again, with same id
-    let result2;
-    ({
-      container,
-      error,
-      result: result2,
-      unmount,
-    } = renderHook(
+    ({ container, error, result, unmount } = renderHook(
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
@@ -950,7 +945,7 @@ describe("useChamp().update", () => {
     ));
 
     expect(error.all).toHaveLength(0);
-    expect(result2.all).toHaveLength(0);
+    expect(result.all).toHaveLength(0);
     expect(consoleError.mock.calls).toEqual([]);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
@@ -966,7 +961,7 @@ describe("useChamp().update", () => {
     });
 
     expect(error.all).toHaveLength(0);
-    expect(result2.all).toHaveLength(0);
+    expect(result.all).toHaveLength(0);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
         "Asynchronous state update of 'test-update-async-unmount' completed after being replaced."
@@ -986,11 +981,11 @@ describe("useChamp().update", () => {
     });
 
     expect(error.all).toHaveLength(0);
-    expect(result2.all).toHaveLength(1);
+    expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(1);
-    expect(result2.current).toHaveLength(2);
-    expect(result2.current[0]).toBe(newDataObj);
-    expect(result2.current[1]).toBeInstanceOf(Function);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toBe(newDataObj);
+    expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
@@ -1004,12 +999,12 @@ describe("useChamp().update", () => {
     console.error = consoleError;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
     const newDataObj = { name: "new-data-obj" };
-    let { container, error, result, rerender } = renderHook(
+    const { container, error, result, rerender } = renderHook(
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-old",
@@ -1120,7 +1115,7 @@ describe("useChamp().update", () => {
   it("throws async errors", async () => {
     // This does not throw when expected since we need to have useEffect
     let rejectWaiting: (error: Error) => void;
-    const waiting: Promise<string> = new Promise((_, reject) => {
+    const waiting = new Promise<string>((_, reject) => {
       rejectWaiting = reject;
     });
     const rejection = new Error("throws async error test");
@@ -1160,7 +1155,9 @@ describe("useChamp().update", () => {
       rejectWaiting(rejection);
 
       // Catch since it is an expected error
-      await waiting.catch(() => {});
+      await waiting.catch(() => {
+        // Empty
+      });
     });
 
     expect(error.all).toHaveLength(1);
@@ -1274,7 +1271,7 @@ describe("useChamp().update", () => {
   it("fails with a predictable exception if called during an asynchronous update", async () => {
     let caughtError;
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve, _) => {
+    const waiting = new Promise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -1357,14 +1354,14 @@ describe("useChamp().update", () => {
 });
 
 describe("useChamp(persistent)", () => {
-  it("triggers error if not all uses of the same id are persistent", async () => {
+  it("triggers error if not all uses of the same id are persistent", () => {
     const consoleError = jest.fn();
     // Silence errors
     console.error = consoleError;
 
     const sharedObj = { name: "shared-obj" };
     const init = jest.fn(() => sharedObj);
-    const renders: Array<string> = [];
+    const renders: string[] = [];
     const MyComponent = (): JSX.Element => {
       const [data] = useChamp("test", init, { persistent: false });
 
@@ -1411,14 +1408,14 @@ describe("useChamp(persistent)", () => {
     });
   });
 
-  it("triggers error if not all uses of the same id are persistent, reverse", async () => {
+  it("triggers error if not all uses of the same id are persistent, reverse", () => {
     const consoleError = jest.fn();
     // Silence errors
     console.error = consoleError;
 
     const sharedObj = { name: "shared-obj" };
     const init = jest.fn(() => sharedObj);
-    const renders: Array<string> = [];
+    const renders: string[] = [];
     const MyComponent = (): JSX.Element => {
       const [data] = useChamp("test", init, { persistent: false });
 
@@ -1463,10 +1460,10 @@ describe("useChamp(persistent)", () => {
     });
   });
 
-  it("shares state between multiple components", async () => {
+  it("shares state between multiple components", () => {
     const sharedObj = { name: "shared-obj" };
     const init = jest.fn(() => sharedObj);
-    const renders: Array<{ name: string; data: { name: string } }> = [];
+    const renders: { name: string; data: { name: string } }[] = [];
     const MyComponent = (): JSX.Element => {
       const [data] = useChamp("test", init, { persistent: true });
 

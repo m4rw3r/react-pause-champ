@@ -100,16 +100,6 @@ export interface UseChampOptions {
 }
 
 /**
- * Guard preventing multiple destructors from running based on object identity
- * as well as the stored id.
- *
- * @internal
- */
-interface Guard {
-  id: string;
-}
-
-/**
  * A React hook which adds stateful variables to components, with support
  * for asynchronous initialization and updates, as well as
  * server-side-rendering with ability to resume in the client.
@@ -211,6 +201,16 @@ export function useChamp<T>(
   );
 
   return [value, update];
+}
+
+/**
+ * Guard preventing multiple destructors from running based on object identity
+ * as well as the stored id.
+ *
+ * @internal
+ */
+interface Guard {
+  id: string;
 }
 
 /**

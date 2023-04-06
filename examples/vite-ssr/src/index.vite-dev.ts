@@ -20,10 +20,16 @@ function createViteDevHtmlTransform(path: string) {
         // The first chunk should contain the full <head>
         transformed = true;
 
+        if (!viteDevServer) {
+          throw new Error(
+            "Vite dev server is undefined, have you started the entrypoint using vite?"
+          );
+        }
+
         // The path is used for some relative URLs/imports
-        viteDevServer!.transformIndexHtml(path, chunk.toString()).then(
+        viteDevServer.transformIndexHtml(path, chunk.toString()).then(
           (data) => callback(null, data),
-          (error) => callback(error, null)
+          (error: Error) => callback(error, null)
         );
       } else {
         callback(null, chunk);

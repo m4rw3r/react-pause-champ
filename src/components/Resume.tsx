@@ -12,7 +12,7 @@ import { Store } from "../store";
 export interface ResumeProps {
   /**
    * JavaScript global variable identifier/path to store the server
-   * {@link Snapshot}, eg. `"stateSnapshot"`.
+   * {@link Snapshot} in on the client, eg. `"stateSnapshot"`.
    *
    * @default `"window.snapshot"`
    */

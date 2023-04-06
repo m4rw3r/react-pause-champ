@@ -6,8 +6,10 @@ Isomorphic Async-aware State using Suspense.
 
 * React 18
 
-Recommended to use `createRoot`/`hydrateRoot` to use batching, in the case of
-asynchronous updates which instantly complete.
+Recommended to use `createRoot`/`hydrateRoot` on the client to use batching, in
+the case of asynchronous updates which instantly complete. On the server
+`renderToPipeableStream`/ `renderToReadableStream` is required for asynchronous
+initializations and Suspense support.
 
 ## Example
 
@@ -30,7 +32,7 @@ function Counter(): JSX.Element {
  * Isomorphic asynchronous fetch with SSR- and Suspense-support.
  */
 function Page({ pageId: string }): JSX.Element {
-  const [{ title, data }] = useChamp("page", async () => {
+  const [{ title, data }] = useChamp(`page.${pageId}`, async () => {
     const { title, data } = await fetchPageData();
 
     return { title: title.toUpperCase(), data };
@@ -40,6 +42,29 @@ function Page({ pageId: string }): JSX.Element {
     <div>
       <h2>{title}</h2>
       <p>{data}</p>
+    </div>
+  );
+}
+
+/**
+ * Asynchronous updates.
+ */
+function ServerCounter(): JSX.Element {
+  const [value, update] = useChamp(
+    "my-async-counter",
+    async () => (await fetchCounter()).value
+  );
+
+  return (
+    <div>
+      <p>{value}</p>
+      <button
+        onClick={update(
+          async (old) => (await fetchCounterUpdate({ newValue: old + 1 })).value
+        )}
+      >
+        Increment
+      </button>
     </div>
   );
 }

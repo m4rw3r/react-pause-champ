@@ -1,36 +1,29 @@
 import { Entry } from "./entry";
 
 /**
- * A listener for state-data updates.
- */
-export type Callback = () => unknown;
-/**
- * Function used to unregister a listener.
- */
-export type Unregister = () => void;
-/**
- * Snapshot from <Resume/>, undefined represents data which is currently being
- * processed at the server and will be streamed by
- * `renderToPipeableStream`/`renderToReadableStream` later.
+ * Snapshot from {@link Resume `<Resume/>`}, to be used with
+ * {@link fromSnapshot} to create a {@link Store} instance to resume
+ * server-rendered state on the client.
  *
- * @see Resume
+ * Undefined represents data which is currently being processed at the server
+ * and will be streamed by `renderToPipeableStream`/`renderToReadableStream` later.
+ *
+ * @category Data
  */
 export type Snapshot = Map<string, Entry<string> | undefined>;
 
 /**
- * @internal
- */
-export interface EntryMeta {
-  persistent: boolean;
-  cid: object;
-}
-
-/**
- * A container for application state data.
+ * A container for application state data used by {@link useChamp}.
+ *
+ * @category Data
+ * @see {@link createStore}
+ * @see {@link fromSnapshot} to restore a snapshot from {@link Resume}
+ * @see {@link Provider}
  */
 export interface Store {
   /**
-   * State-data.
+   * State-data currently rendered, with the identifier passed to
+   * {@link useChamp} as key, useful for debugging purposes. Do not modify.
    */
   readonly data: Map<string, Entry<unknown>>;
   /**
@@ -56,7 +49,11 @@ export interface Store {
 }
 
 /**
- * Creates a new empty Store.
+ * Creates a new empty {@link Store}.
+ *
+ * @category Data
+ * @see {@link Provider} to add Store-data to a React component tree
+ * @see {@link Resume} for propagating server-rendered state to client
  */
 export function createStore(): Store {
   return {
@@ -67,13 +64,20 @@ export function createStore(): Store {
 }
 
 /**
- * Creates a new Store from a snapshot.
+ * Creates a new {@link Store} from a {@link Snapshot}.
  *
- * Undefined correspond to entries which we are still waiting for, and should
- * arrive once the component has finished rendering on the server.
+ * Any updates to the Snapshot after the Store has been created will still
+ * propagate to any suspended or not-yet-rendered components using
+ * {@link useChamp}.
  *
- * @see Resume
- * @see React.renderToPipeableStream
+ * `undefined` in the snapshot-map corresponds to entries which we are still
+ * waiting for, and should arrive once the component has finished rendering on
+ * the server.
+ *
+ * @category Data
+ * @returns A new {@link Store} instance connected to the {@link Snapshot} parameter
+ * @see {@link Resume} to create the Server-Side-Rendering snapshot
+ * @see {@link Provider} to provide the Store to react components
  */
 export function fromSnapshot(snapshot: Snapshot | undefined): Store {
   return {
@@ -85,9 +89,33 @@ export function fromSnapshot(snapshot: Snapshot | undefined): Store {
 }
 
 /**
+ * A listener for state-data updates.
+ *
+ * @internal
+ */
+export type Callback = () => unknown;
+
+/**
+ * Function used to unregister a listener.
+ *
+ * @internal
+ */
+export type Unregister = () => void;
+
+/**
+ * @internal
+ */
+export interface EntryMeta {
+  persistent: boolean;
+  cid: object;
+}
+
+/**
  * Listen to state-updates / errors.
  *
  * Call the returned function to unregister.
+ *
+ * @internal
  */
 export function listen(
   store: Store,

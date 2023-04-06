@@ -8,6 +8,8 @@ export type {
   UpdateCallback,
   UseChampOptions,
 } from "./useChamp";
+export type { ProviderProps } from "./components/Provider";
+export type { ResumeProps } from "./components/Resume";
 
 export { createStore, fromSnapshot } from "./store";
 export { useChamp } from "./useChamp";

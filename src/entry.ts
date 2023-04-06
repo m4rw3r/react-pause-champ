@@ -1,14 +1,16 @@
 /**
- * State-data entry.
+ * Inner state-data entry, tracking the stateful variables for {@link useChamp}.
  *
- * If the entry is in the "suspended" state its content will be replaced with
+ * If the entry is in the `"suspended"` state its content will be replaced with
  * the appropriate variant once the promise resolves.
  *
  * Note: Promise resolution and internal entry-updates will not be notified
- * through listeners on Store.
+ * through listeners on {@link Store}.
  *
- * @see newEntry()
- * @see unwrapEntry()
+ * @category Data
+ * @typeParam T The datatype of the stateful variable
+ * @see {@link Store#data Store.data}
+ * @see {@link Snapshot}
  */
 export type Entry<T> =
   | { kind: "value"; value: T }

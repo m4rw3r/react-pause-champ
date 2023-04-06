@@ -5,44 +5,59 @@ import { Entry, newEntry, unwrapEntry } from "../entry";
 import { Store } from "../store";
 
 /**
- * Properties for creating a <Resume /> component.
+ * Properties for creating a {@link Resume `<Resume />`} component.
+ *
+ * @category Component
  */
 export interface ResumeProps {
   /**
-   * JavaScript global variable identifier/path to store the server snapshot,
-   * eg. `window.snapshot`.
+   * JavaScript global variable identifier/path to store the server
+   * {@link Snapshot}, eg. `"stateSnapshot"`.
    *
-   * Default: "window.snapshot"
+   * @default `"window.snapshot"`
    */
   identifier?: string | undefined;
 }
 
 /**
- * Component which first creates a server-snapshot `Map`, then populates this
- * map with state data as it is resolved. Compatible with
- * `renderToPipeableStream()`/`renderToReadableStream()`.
+ * Server Side Component which streams the state data data present in the
+ * wrapping {@link Provider}'s {@link Store}.
  *
- * Usage:
+ * It renders a `<script>` tag which creates a {@link Snapshot} instance, then
+ * gradually populates this snapshot with state data as it gets resolved. This
+ * works for asynchronous updates and streaming updates of components as well.
+ *
+ * This component should be rendered outside the normal application structure
+ * to avoid hydration differences.
+ *
+ * ## Usage
  *
  * ```typescript
  * // server.js
  * <Provider store={store}>
- *   <App />
+ *   <div id="app-root">
+ *     <App />
+ *   </div>
  *   <Resume />
  * </Provider>
  *
  * // client.js
  * hydrateRoot(
- *   document.getElementById("root"),
+ *   document.getElementById("app-root"),
  *   <Provider store={fromSnapshot(window.snapshot)}>
  *     <App />
  *   </Provider>
  * );
  * ```
  *
- * @see fromSnapshot
- * @see React.hydrateRoot
- * @see React.renderToPipeableStream
+ * @category Component
+ * @param props - Component properties
+ * @param props.identifier - Identifier to write the snapshot to
+ * @see {@link fromSnapshot} is used to restore a snapshot on the client
+ * @see {@link Provider} for required wrapping {@link Store} provider
+ * @see {@link react-dom!hydrateRoot} for how to hydrate the root
+ * @see {@link react-dom/server!renderToPipeableStream} on how to stream the data
+ * @see {@link react-dom/server!renderToReadableStream}
  */
 export function Resume({
   identifier = "window.snapshot",

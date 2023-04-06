@@ -30,7 +30,7 @@ export interface ResumeProps {
  * This component should be rendered outside the normal application structure
  * to avoid hydration differences.
  *
- * ## Usage
+ * @example
  *
  * ```typescript
  * // server.js

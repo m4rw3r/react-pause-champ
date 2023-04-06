@@ -1,5 +1,6 @@
 import react from "@vitejs/plugin-react";
 import vavite from "vavite";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default {
   buildSteps: [
@@ -24,6 +25,8 @@ export default {
     },
   ],
   plugins: [
+    // To be able to load the manifest path
+    tsconfigPaths(),
     react(),
     vavite({
       // Production:

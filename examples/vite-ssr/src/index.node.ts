@@ -5,13 +5,18 @@ import { fileURLToPath } from "node:url";
 import { renderToPipeableStream } from "react-dom/server";
 import { createAppRoot } from "./server";
 
-// @ts-ignore We build server after client, so this is accessible
-import { default as manifest } from "../dist/client/manifest.json";
+// We build server after client, so the manifest is accessible
+// See tsconfig.json compilerOptions.paths for actual path and typings.d.ts:
+import { default as manifest } from "@manifest";
 
-// All paths are relative to project root
-const { "src/index.client.tsx": clientEntryPath } = manifest;
+// Find the entrypoint
+const clientEntryPath = Object.values(manifest).find((file) => file.isEntry);
 
-function handler(_req: Request, res: Response): void {
+if (!clientEntryPath) {
+  throw new Error("Client entrypoint was not found in client/manifest.json");
+}
+
+const handler = (_req: Request, res: Response): void => {
   const stream = renderToPipeableStream(createAppRoot(), {
     // Production has normal JavaScript bundles:
     bootstrapScripts: [clientEntryPath.file],
@@ -26,7 +31,7 @@ function handler(_req: Request, res: Response): void {
       res.send("Error");
     },
   });
-}
+};
 
 const app = express();
 

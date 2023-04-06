@@ -13,7 +13,7 @@
 export type Entry<T> =
   | { kind: "value"; value: T }
   | { kind: "suspended"; value: Promise<T> }
-  | { kind: "error"; value: Error };
+  | { kind: "error"; value: unknown };
 
 /**
  * Creates a new Entry from the given maybe-promise. If it is a promise
@@ -68,6 +68,6 @@ export function unwrapEntry<T>(entry: Entry<T>): T {
 /**
  * @internal
  */
-export function isThenable<T>(value: any): value is Promise<T> {
-  return typeof value?.then === "function";
+export function isThenable<T>(value: unknown): value is Promise<T> {
+  return typeof (value as Promise<T> | null | undefined)?.then === "function";
 }

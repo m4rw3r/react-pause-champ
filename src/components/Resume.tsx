@@ -93,7 +93,7 @@ export interface ResumeScriptProps {
  */
 export interface EntryIterator {
   items: Map<string, Entry<unknown>>;
-  next: () => EntryIterator | undefined;
+  next: Entry<EntryIterator | undefined>;
 }
 
 /**
@@ -128,7 +128,7 @@ export function ResumeNext({
   identifier,
   iter,
 }: ResumeNextProps): JSX.Element | null {
-  const next = iter.next();
+  const next = unwrapEntry(iter.next);
 
   if (!next) {
     return null;
@@ -168,7 +168,7 @@ export function ResumeScript({
 export function stateDataIteratorNext(
   store: Store,
   emitted?: Set<string> | undefined,
-  suspended?: Set<Promise<any>> | undefined
+  suspended?: Set<Promise<unknown>> | undefined
 ): EntryIterator {
   emitted = emitted ? new Set(emitted) : new Set();
   suspended = suspended ? new Set(suspended) : new Set();
@@ -202,12 +202,12 @@ export function stateDataIteratorNext(
     return stateDataIteratorNext(store, emitted, suspended);
   }
 
-  const entry = newEntry(
+  const next = newEntry(
     promises.length > 0 ? Promise.any(promises).then(nextIterator) : undefined
   );
 
   return {
     items,
-    next: () => unwrapEntry(entry),
+    next,
   };
 }

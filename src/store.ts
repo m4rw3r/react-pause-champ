@@ -20,17 +20,10 @@ export type Snapshot = Map<string, Entry<string> | undefined>;
 /**
  * @internal
  */
-export type EntryMeta = {
+export interface EntryMeta {
   persistent: boolean;
   cid: object;
-};
-
-/**
- * Object which is statically guaranteed to be empty.
- *
- * @internal
- */
-export type EmptyObject = { [n: string]: never };
+}
 
 /**
  * A container for application state data.
@@ -39,7 +32,7 @@ export interface Store {
   /**
    * State-data.
    */
-  readonly data: Map<string, Entry<any>>;
+  readonly data: Map<string, Entry<unknown>>;
   /**
    * Listeners for updates to `data`.
    *
@@ -52,7 +45,7 @@ export interface Store {
    *
    * @internal
    */
-  readonly snapshot?: Map<string, Entry<any> | undefined> | undefined;
+  readonly snapshot?: Map<string, Entry<unknown> | undefined> | undefined;
   /**
    * Developer-mode metadata for initialized entries, tracking settings and
    * attached component-instances
@@ -101,11 +94,13 @@ export function listen(
   id: string,
   listener: Callback
 ): Unregister {
+  const listeners = store.listeners.get(id) ?? new Set();
+
   if (!store.listeners.has(id)) {
-    store.listeners.set(id, new Set());
+    store.listeners.set(id, listeners);
   }
 
-  store.listeners.get(id)!.add(listener);
+  listeners.add(listener);
 
   return () => {
     store.listeners.get(id)?.delete(listener);
@@ -117,7 +112,7 @@ export function listen(
  *
  * @internal
  */
-export function getEntry<T>(store: Store, id: string): Entry<T> | undefined {
+export function getEntry(store: Store, id: string): Entry<unknown> | undefined {
   return store.data.get(id);
 }
 
@@ -126,7 +121,10 @@ export function getEntry<T>(store: Store, id: string): Entry<T> | undefined {
  *
  * @internal
  */
-export function getSnapshot(store: Store, id: string): Entry<any> | undefined {
+export function getSnapshot(
+  store: Store,
+  id: string
+): Entry<unknown> | undefined {
   return store.snapshot?.get(id);
 }
 
@@ -173,7 +171,10 @@ export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
 /**
  * @internal
  */
-export function restoreEntryFromSnapshot(store: Store, id: string): Entry<any> {
+export function restoreEntryFromSnapshot(
+  store: Store,
+  id: string
+): Entry<unknown> {
   // This callback should only be triggered for hydrating components,
   // which means they MUST have a server-snapshot:
   if (!store.snapshot) {
@@ -218,7 +219,7 @@ export function dropEntry(store: Store, id: string): void {
  * @internal
  */
 export function triggerListeners(store: Store, id: string): void {
-  for (const f of store.listeners.get(id) || []) {
+  for (const f of store.listeners.get(id) ?? []) {
     f();
   }
 }
@@ -232,8 +233,9 @@ export function checkEntry(
   store: Store,
   id: string,
   persistent: boolean,
-  cid: EmptyObject
+  cid: Record<never, never>
 ): void {
+  /* eslint-disable @typescript-eslint/no-non-null-assertion */
   // This should be populated if we are in dev-mode
   const meta = store.meta!.get(id);
 
@@ -250,4 +252,5 @@ export function checkEntry(
   } else {
     store.meta!.set(id, { persistent, cid });
   }
+  /* eslint-enable @typescript-eslint/no-non-null-assertion */
 }

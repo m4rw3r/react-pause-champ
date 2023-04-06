@@ -101,7 +101,7 @@ export function useChamp<T>(
       // We have to swap to restore when we have a DOM and can hydrate, on the
       // server we have to always use initState since we do not have snapshots.
       canUseDOM()
-        ? () => restoreEntryFromSnapshot(store, id)
+        ? () => restoreEntryFromSnapshot(store, id) as Entry<T>
         : () => initState(store, id, initialState),
       (update: Update<T>) => updateState(store, id, update),
       (callback: () => void) =>
@@ -125,7 +125,7 @@ function useCheckEntry(store: Store, id: string, persistent: boolean): void {
   // Unique object for this component instance, used to detect multiple
   // useChamp() attaching on the same id without persistent flag in
   // developer mode
-  const cid = useRef<{}>();
+  const cid = useRef<Record<never, never>>();
 
   // TODO: useEffect only runs on client, how do we check meta-info
   // on server-render?
@@ -150,14 +150,14 @@ function useCheckEntry(store: Store, id: string, persistent: boolean): void {
  * @internal
  */
 function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
-  let entry: Entry<T> | undefined = getEntry(store, id);
+  let entry = getEntry(store, id) as Entry<T> | undefined;
 
   if (!entry) {
     try {
       entry = newEntry(
         typeof init === "function" ? (init as InitFn<T>)() : init
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       // If the init fails, save it and propagate it as an error into the
       // component, we are now in an error state:
       entry = { kind: "error", value: e };
@@ -175,7 +175,7 @@ function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
  * @internal
  */
 function updateState<T>(store: Store, id: string, update: Update<T>): void {
-  let entry = getEntry<T>(store, id);
+  let entry = getEntry(store, id) as Entry<T> | undefined;
 
   if (!entry || entry.kind !== "value") {
     throw new Error(
@@ -193,7 +193,7 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
         ? (update as UpdateFn<T>)(entry.value)
         : update
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
     // If the update fails, propagate it as an error into the component
     entry = { kind: "error", value: e };
   }
@@ -252,7 +252,9 @@ function subscribeState(
 export function canUseDOM(): boolean {
   return Boolean(
     typeof window !== "undefined" &&
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- null
       window.document &&
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- Presence check
       window.document.createElement
   );
 }

@@ -7,8 +7,8 @@
     "clean": "rm -rf dist",
     "dev": "vite",
     "dist": "npm run check && npm run format:check && npm run build",
-    "format": "prettier -w src *.ts",
-    "format:check": "prettier -c src *.ts",
+    "format": "prettier -w src *.ts *.json",
+    "format:check": "prettier -c src *.ts *.json",
     "preview": "vite preview",
     "prod": "npm run build && npm run start",
     "start": "node dist/server"
@@ -24,7 +24,6 @@
     "@types/react": "^18.0.32",
     "@types/react-dom": "^18.0.11",
     "@vitejs/plugin-react": "^3.1.0",
-    "prettier": "^2.8.7",
     "typescript": "^5.0.3",
     "vavite": "^1.7.0",
     "vite": "^4.2.1",

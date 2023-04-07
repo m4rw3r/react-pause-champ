@@ -192,7 +192,9 @@ export function useChamp<T>(
       (callback: () => void) =>
         subscribeState(store, id, persistent, callback, guard),
     ],
-    [store, id, persistent]
+    // We do not include `initialState` in dependencies since it is only run
+    // once and any changes after that should not affect anything
+    [store, id, persistent, guard]
   );
 
   // Unwrap at end once we have initialized all hooks

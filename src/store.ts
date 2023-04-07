@@ -34,7 +34,7 @@ export interface Store {
   readonly listeners: Map<string, Set<Callback>>;
   /**
    * Snapshot from server-rendering, a reference to an externally defined Map
-   * created by <Resume />.
+   * created by {@link Resume}.
    *
    * @internal
    */
@@ -52,6 +52,7 @@ export interface Store {
  * Creates a new empty {@link Store}.
  *
  * @category Data
+ * @see {@link fromSnapshot} to create a Store from a {@link Snapshot}
  * @see {@link Provider} to add Store-data to a React component tree
  * @see {@link Resume} for propagating server-rendered state to client
  */
@@ -75,7 +76,7 @@ export function createStore(): Store {
  * the server.
  *
  * @category Data
- * @returns A new {@link Store} instance connected to the {@link Snapshot} parameter
+ * @returns A new Store instance connected to the Snapshot parameter
  * @see {@link Resume} to create the Server-Side-Rendering snapshot
  * @see {@link Provider} to provide the Store to react components
  */

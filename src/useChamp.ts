@@ -69,7 +69,7 @@ export type Update<T> = T | UpdateFn<T>;
  *
  * @category Hook
  * @typeParam T The datatype of the stateful variable
- * @param oldValue The current value of the stateful variable
+ * @param oldValue - The current value of the stateful variable
  * @returns The new value, or a promise which will resolve to the new value
  * @see {@link Update}
  * @see {@link UpdateCallback}
@@ -80,7 +80,7 @@ export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
  *
  * @category Hook
  * @typeParam T The datatype of the stateful variable
- * @param update The new value, or a function creating the new value
+ * @param update - The new value, or a function creating the new value
  */
 export type UpdateCallback<T> = (update: Update<T>) => void;
 /**

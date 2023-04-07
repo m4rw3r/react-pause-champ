@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 
-import express from "express";
+import * as express from "express";
 import { fileURLToPath } from "node:url";
 import { renderToPipeableStream } from "react-dom/server";
 import { createAppRoot } from "./server";

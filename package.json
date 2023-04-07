@@ -16,8 +16,8 @@
     "clean": "rm -rf coverage dist",
     "dist": "npm run check && npm run test && npm run format:check && npm run build && npm run lint && npm run examples",
     "examples": "cd examples/vite-ssr && npm run dist",
-    "format": "prettier -w src *.ts *.js *.cjs",
-    "format:check": "prettier -c src *.ts *.js *.cjs",
+    "format": "prettier --ignore-path .gitignore -w .",
+    "format:check": "prettier --ignore-path .gitignore -c .",
     "prepack": "npm run dist",
     "test": "jest",
     "test:watch:": "jest --watch"

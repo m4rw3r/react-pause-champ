@@ -6,9 +6,7 @@
     "check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "dev": "vite",
-    "dist": "npm run check && npm run format:check && npm run build",
-    "format": "prettier -w src *.ts *.json",
-    "format:check": "prettier -c src *.ts *.json",
+    "dist": "npm run check && npm run build",
     "preview": "vite preview",
     "prod": "npm run build && npm run start",
     "start": "node dist/server"

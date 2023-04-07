@@ -4,7 +4,7 @@ Isomorphic Async-aware State using Suspense.
 
 ## Dependencies
 
-* React 18
+- React 18
 
 Recommended to use `createRoot`/`hydrateRoot` on the client to use batching, in
 the case of asynchronous updates which instantly complete. On the server
@@ -75,7 +75,7 @@ function ServerCounter(): JSX.Element {
 
 ## Frequently Asked Questions
 
-* `Uncaught Error: State '*' is already mounted in another component.` when
+- `Uncaught Error: State '*' is already mounted in another component.` when
   using Hot-Module-Reloading.
 
   This is caused by reordering components in JSX without using `key`. When

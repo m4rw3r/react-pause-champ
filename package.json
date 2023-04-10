@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "description": "Isomorphic async-aware state hook using React Suspense with Server-Side-Rendering support",
   "type": "module",
-  "main": "dist/index.cjs",
+  "exports": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "build": "npm run build:js && npm run build:d.ts",
+    "build": "npm run clean && npm run build:d.ts && npm run build:js",
     "build:d.ts": "rollup -c",
-    "build:js": "vite build",
+    "build:js": "tsc --project tsconfig.build.json",
     "check": "tsc --noEmit",
     "lint": "eslint .",
     "clean": "rm -rf coverage dist",
@@ -40,6 +40,9 @@
   "files": [
     "dist/*"
   ],
+  "engine": {
+    "node": " >=14.13.1 || >=16.0.0"
+  },
   "peerDependencies": {
     "react": "^18"
   },
@@ -61,7 +64,6 @@
     "rollup-plugin-dts": "^5.3.0",
     "ts-jest": "^29.0.5",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.2",
-    "vite": "^4.2.1"
+    "typescript": "^5.0.2"
   }
 }

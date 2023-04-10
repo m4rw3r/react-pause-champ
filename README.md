@@ -1,19 +1,70 @@
 # React Pause Champ
 
-Isomorphic Async-aware State using Suspense.
+Isomorphic React hook providing async-aware stateful variables to components
+with Suspense and Server-Side-Rendering support.
+
+## Features
+
+- `useState`-like API
+
+  Pass an identifier and an initial value to the `useChamp` hook and you get
+  the current value and a setter, almost exactly like React's `useState`!
+
+- Asynchronous initializers and updates
+
+  Any function passed as either the initial value or an update of a stateful
+  variable can be asynchronous, either through using the `async`-keyword or
+  by renturning a `Promise`.
+
+- [Suspense](https://react.dev/reference/react/Suspense)
+
+  Asynchronous state initializers and updates will trigger fallback components
+  if wrapped in `<Suspense/>`-boundaries. For updates this can be managed using
+  React's [`startTransition`](https://react.dev/reference/react/startTransition).
+
+- [Server-Side-Rendering](https://react.dev/reference/react-dom/server)
+
+  The whole application can render on the server, await asynchronous data, and
+  then hydrate on client. Transparently. With the same application code.
+
+- [Server Streaming](https://react.dev/reference/react-dom/server/renderToPipeableStream)
+
+  Server-rendering will wait for all asynchronous initializers/updates outside
+  of any `<Suspense/>`-boundaries to finish before sending the initial
+  HTML-shell to the client. Any asynchronous initializers wrapped in a
+  `<Suspense/>`-boundary will send the fallback components to the client as a
+  part of the HTML-shell, and once they have completed they will be streamed to
+  the client, including the stateful data, allowing for a seamless experience.
+
+- [Error Boundary compatibility](https://react.dev/reference/react/Component#static-getderivedstatefromerror)
+
+  Errors thrown in initializers and updates propagate to the closest
+  Error Boundary, allowing for unified error-handling.
+
+- [Small size](https://bundlephobia.com/package/@m4rw3r/react-pause-champ)
+
+  Around 1kB gzipped without development helpers and server components. Has
+  zero dependencies besides React, and can be treeshaked.
+
+## Installation
+
+```bash
+npm install @m4rw3r/react-pause-champ
+```
 
 ## Dependencies
 
 - React 18
 
-Recommended to use `createRoot`/`hydrateRoot` on the client to use batching, in
-the case of asynchronous updates which instantly complete. On the server
-`renderToPipeableStream`/`renderToReadableStream` is required for asynchronous
-initializations and Suspense support.
+Recommended to use `createRoot`/`hydrateRoot` on the client to use batching. On
+the server `renderToPipeableStream`/`renderToReadableStream` is required for
+asynchronous initializations and Suspense support.
 
-## Example
+## Examples
 
 ```typescript
+import { useChamp } from "@m4rw3r/react-pause-champ";
+
 /**
  * Plain useState replacement with SSR-support.
  */

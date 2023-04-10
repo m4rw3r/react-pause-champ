@@ -14,7 +14,7 @@ with Suspense and Server-Side-Rendering support.
 
   Any function passed as either the initial value or an update of a stateful
   variable can be asynchronous, either through using the `async`-keyword or
-  by renturning a `Promise`.
+  by returning a `Promise`.
 
 - [Suspense](https://react.dev/reference/react/Suspense)
 

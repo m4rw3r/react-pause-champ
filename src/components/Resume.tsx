@@ -5,8 +5,9 @@ import { Entry, newEntry, unwrapEntry } from "../entry";
 import { Store } from "../store";
 
 /**
- * Properties for creating a {@link Resume `<Resume />`} component.
+ * Properties for creating a {@link Resume | `<Resume />`} component.
  *
+ * @public
  * @category Component
  */
 export interface ResumeProps {
@@ -14,7 +15,7 @@ export interface ResumeProps {
    * JavaScript global variable identifier/path to store the server
    * {@link Snapshot} in on the client, eg. `"stateSnapshot"`.
    *
-   * @default `"window.snapshot"`
+   * @defaultValue `"window.snapshot"`
    */
   identifier?: string | undefined;
 }
@@ -23,6 +24,7 @@ export interface ResumeProps {
  * Server Side Component which streams the state data data present in the
  * wrapping {@link Provider}'s {@link Store}.
  *
+ * @remarks
  * It renders a `<script>` tag which creates a {@link Snapshot} instance, then
  * gradually populates this snapshot with state data as it gets resolved. This
  * works for asynchronous updates and streaming updates of components as well.
@@ -50,12 +52,13 @@ export interface ResumeProps {
  * );
  * ```
  *
+ * @public
  * @category Component
  * @param props - Component properties
  * @param props.identifier - Identifier to write the snapshot to
  * @see {@link fromSnapshot} is used to restore a snapshot on the client
  * @see {@link Provider} for required wrapping {@link Store} provider
- * @see {@link react-dom!hydrateRoot} for how to hydrate the root
+ * @see {@link react-dom/client!hydrateRoot} for how to hydrate the root
  * @see {@link react-dom/server!renderToPipeableStream} on how to stream the data
  * @see {@link react-dom/server!renderToReadableStream}
  */

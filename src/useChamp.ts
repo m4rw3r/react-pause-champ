@@ -23,8 +23,9 @@ import {
  * Initial value or a function creating the initial value for a stateful
  * variable in {@link useChamp}.
  *
+ * @public
  * @category Hook
- * @typeParam T The datatype of the stateful variable
+ * @typeParam T - The datatype of the stateful variable
  * @see {@link Update}
  */
 export type Init<T> = T | InitFn<T>;
@@ -32,6 +33,7 @@ export type Init<T> = T | InitFn<T>;
  * A function creating an initial value for a stateful variable from
  * {@link useChamp}.
  *
+ * @remarks
  * This function can also be asynchronous, either by returning a `Promise`, or
  * by using the `async` keyword.
  *
@@ -39,8 +41,9 @@ export type Init<T> = T | InitFn<T>;
  * component. To manually handle exceptions they will have to be caught using
  * `try`-`catch` and then converted into a value.
  *
+ * @public
  * @category Hook
- * @typeParam T The datatype of the stateful variable
+ * @typeParam T - The datatype of the stateful variable
  * @returns The initial value, or a promise which will resolve to the value
  * @see {@link Init}
  * @see {@link useChamp}
@@ -50,8 +53,9 @@ export type InitFn<T> = () => T | Promise<T>;
  * A new value, or a function creating a new value, for a stateful variable
  * from {@link useChamp}.
  *
+ * @public
  * @category Hook
- * @typeParam T The datatype of the stateful variable
+ * @typeParam T - The datatype of the stateful variable
  * @see {@link Init}
  * @see {@link UpdateCallback}
  */
@@ -60,6 +64,7 @@ export type Update<T> = T | UpdateFn<T>;
  * A function creating a new value for a stateful variable from
  * {@link useChamp}.
  *
+ * @remarks
  * This function can also be asynchronous, either by returning a `Promise`, or
  * by using the `async` keyword.
  *
@@ -67,8 +72,9 @@ export type Update<T> = T | UpdateFn<T>;
  * component. To manually handle exceptions they will have to be caught using
  * `try`-`catch` and then converted into a value.
  *
+ * @public
  * @category Hook
- * @typeParam T The datatype of the stateful variable
+ * @typeParam T - The datatype of the stateful variable
  * @param oldValue - The current value of the stateful variable
  * @returns The new value, or a promise which will resolve to the new value
  * @see {@link Update}
@@ -78,14 +84,16 @@ export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
 /**
  * Callback which can update a stateful variable created by {@link useChamp}.
  *
+ * @public
  * @category Hook
- * @typeParam T The datatype of the stateful variable
+ * @typeParam T - The datatype of the stateful variable
  * @param update - The new value, or a function creating the new value
  */
 export type UpdateCallback<T> = (update: Update<T>) => void;
 /**
  * Options for {@link useChamp} hook.
  *
+ * @public
  * @category Hook
  */
 export interface UseChampOptions {
@@ -94,7 +102,7 @@ export interface UseChampOptions {
    * its component is unmountend, and will also allow for multiple components
    * to use the same stateful data simultaneously.
    *
-   * @default `true`
+   * @defaultValue `true`
    */
   persistent?: boolean;
 }
@@ -103,6 +111,8 @@ export interface UseChampOptions {
  * A React hook which adds stateful variables to components, with support
  * for asynchronous initialization and updates, as well as
  * server-side-rendering with ability to resume in the client.
+ *
+ * @remarks
  *
  * Creates a state stateful data-instance with the given identifier, which is
  * scoped to the {@link Store} instance in an ancestor {@link Provider}
@@ -127,33 +137,45 @@ export interface UseChampOptions {
  *  * mounting two non-persistent hooks with the same id simultaneously.
  *  * Asynchronous updates finishing after component being unmonted.
  *
+ * @public
  * @category Hook
- * @typeParam T The datatype of the stateful variable
- * @param id - Identifier for the data, must be unique within the same
- *        {@link Provider} unless
- *        {@link UseChampOptions#persistent options.persistent} is set
- * @param initialState - The initial data for the state. If the parameter is a
- *        {@link InitFn function} it will be treated as an initializer and
- *        executed once during state-initialization and its return-value will
- *        be the initial data.
+ * @typeParam T - The datatype of the stateful variable
+ *
+ * @param id - Identifier for the data.
+ * Must be unique within the same {@link Provider} unless
+ * {@link UseChampOptions#persistent | options.persistent} is set.
+ *
+ * @param initialState - The initial data for the state.
+ * If the parameter is a {@link InitFn | function} it will be treated as an
+ * initializer and executed once during state-initialization and its
+ * return-value will be the initial data.
+ *
  * @param options - Optional options for the hook
+ *
  * @param options.persistent - If the hook should preserve the data after
- *        component dismounting, this setting also allows addressing the same
- *        state id from multiple components simultaneously
+ * component dismounting.
+ * This setting also allows addressing the same state id from multiple
+ * components simultaneously
+ *
  * @returns A two-element array where the first element is the current value of
- *          the stateful variable, and the second value is an
- *          {@link UpdateCallback update-function} which can be used to update
- *          the state value. The parameter to the update function can either be
- *          the new value, or a {@link UpdateFn possibly-asynchronous function}
- *          which will receive the current value and return the new value.
+ * the stateful variable, and the second value is an
+ * {@link UpdateCallback | update-function} which can be used to update the
+ * state value. The parameter to the update function can either be the new
+ * value, or a {@link UpdateFn | possibly-asynchronous function} which will
+ * receive the current value and return the new value.
+ *
  * @see {@link Provider} for required wrapping {@link Store} provider
+ *
  * @see {@link Resume} for propagating data from Server Side Rendering
+ *
  * @see {@link react!Suspense} to show placeholders during asyncronous
- *      initializations/updates
+ * initializations/updates
+ *
  * @see {@link react!useTransition} for how to prevent unwanted loading
- *      indicators during asynchronous updates
- * @see {@link https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary React Error Boundaries}
- *      for information on how to catch component errors.
+ * indicators during asynchronous updates
+ *
+ * @see {@link https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary | React Error Boundaries}
+ * for information on how to catch component errors.
  */
 export function useChamp<T>(
   id: string,

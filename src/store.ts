@@ -1,13 +1,15 @@
 import { Entry } from "./entry";
 
 /**
- * Snapshot from {@link Resume `<Resume/>`}, to be used with
+ * Snapshot from {@link Resume | `<Resume/>`}, to be used with
  * {@link fromSnapshot} to create a {@link Store} instance to resume
  * server-rendered state on the client.
  *
+ * @remarks
  * Undefined represents data which is currently being processed at the server
  * and will be streamed by `renderToPipeableStream`/`renderToReadableStream` later.
  *
+ * @public
  * @category Data
  */
 export type Snapshot = Map<string, Entry<string> | undefined>;
@@ -15,6 +17,7 @@ export type Snapshot = Map<string, Entry<string> | undefined>;
 /**
  * A container for application state data used by {@link useChamp}.
  *
+ * @public
  * @category Data
  * @see {@link createStore}
  * @see {@link fromSnapshot} to restore a snapshot from {@link Resume}
@@ -51,6 +54,7 @@ export interface Store {
 /**
  * Creates a new empty {@link Store}.
  *
+ * @public
  * @category Data
  * @see {@link fromSnapshot} to create a Store from a {@link Snapshot}
  * @see {@link Provider} to add Store-data to a React component tree
@@ -67,6 +71,7 @@ export function createStore(): Store {
 /**
  * Creates a new {@link Store} from a {@link Snapshot}.
  *
+ * @remarks
  * Any updates to the Snapshot after the Store has been created will still
  * propagate to any suspended or not-yet-rendered components using
  * {@link useChamp}.
@@ -75,6 +80,7 @@ export function createStore(): Store {
  * waiting for, and should arrive once the component has finished rendering on
  * the server.
  *
+ * @public
  * @category Data
  * @returns A new Store instance connected to the Snapshot parameter
  * @see {@link Resume} to create the Server-Side-Rendering snapshot

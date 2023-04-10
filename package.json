@@ -1,14 +1,15 @@
 {
   "name": "@m4rw3r/react-pause-champ",
   "version": "0.1.1",
-  "description": "Isomorphic async-aware state hook using React Suspense with Server-Side-Rendering support",
+  "description": "Isomorphic React hook providing async-aware stateful variables to components with Suspense and Server-Side-Rendering support",
   "type": "module",
   "exports": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "build": "npm run clean && npm run build:d.ts && npm run build:js",
+    "prebuild": "npm run clean",
+    "build": "npm run build:d.ts && npm run build:js",
     "build:d.ts": "rollup -c",
     "build:js": "tsc --project tsconfig.build.json",
     "check": "tsc --noEmit",
@@ -20,15 +21,16 @@
     "format:check": "prettier --ignore-path .gitignore -c .",
     "prepack": "npm run dist",
     "test": "jest",
-    "test:watch:": "jest --watch"
+    "test:watch": "jest --watch"
   },
   "keywords": [
-    "React",
-    "isomorphic",
-    "state",
     "async",
     "hook",
+    "isomorphic",
+    "react",
+    "react-hooks",
     "ssr",
+    "state",
     "suspense"
   ],
   "author": "Martin Wernstål <m4rw3r@gmail.com>",
@@ -37,6 +39,7 @@
     "type": "git",
     "url": "https://github.com/m4rw3r/react-pause-champ"
   },
+  "homepage": "https://github.com/m4rw3r/react-pause-champ",
   "files": [
     "dist/*"
   ],

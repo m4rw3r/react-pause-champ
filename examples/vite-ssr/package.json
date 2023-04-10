@@ -2,7 +2,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "npm run clean && vavite --mode=production",
+    "prebuild": "npm run clean",
+    "build": "vavite --mode=production",
     "check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "dev": "vite",

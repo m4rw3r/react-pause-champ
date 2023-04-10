@@ -1,6 +1,6 @@
 # React Pause Champ
 
-Isomorphic React hook providing async-aware stateful variables to components
+Isomorphic React hook providing async-aware stateful variables to components,
 with Suspense and Server-Side-Rendering support.
 
 ## Features

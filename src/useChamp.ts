@@ -98,9 +98,12 @@ export type UpdateCallback<T> = (update: Update<T>) => void;
  */
 export interface UseChampOptions {
   /**
-   * If the state is persistent. A persistent state will not get dropped when
-   * its component is unmountend, and will also allow for multiple components
-   * to use the same stateful data simultaneously.
+   * If the state is persistent.
+   *
+   * @remarks
+   * A persistent state will not get dropped when its component is unmountend,
+   * and will also allow for multiple components to use the same stateful data
+   * simultaneously.
    *
    * @defaultValue `true`
    */

@@ -74,7 +74,7 @@ export function Resume({
   return (
     <ResumeInner
       identifier={identifier}
-      iter={stateDataIteratorNext(store)}
+      iter={createStateDataIterator(store)}
       createMap
     />
   );
@@ -182,12 +182,15 @@ export function ResumeScript({
 
 /**
  * @internal
+ * @param emitted - List of already emitted items
+ * @param suspended - List of already emitted placeholders
  */
-export function stateDataIteratorNext(
+export function createStateDataIterator(
   store: Store,
   emitted?: Set<string> | undefined,
   suspended?: Set<Promise<unknown>> | undefined
 ): EntryIterator {
+  // Clone the sets to avoid having re-renders skip parts they previously had
   emitted = emitted ? new Set(emitted) : new Set();
   suspended = suspended ? new Set(suspended) : new Set();
   const items = new Map();
@@ -217,11 +220,13 @@ export function stateDataIteratorNext(
   }
 
   function nextIterator(): EntryIterator {
-    return stateDataIteratorNext(store, emitted, suspended);
+    return createStateDataIterator(store, emitted, suspended);
   }
 
   const next = newEntry(
-    promises.length > 0 ? Promise.any(promises).then(nextIterator) : undefined
+    promises.length > 0
+      ? Promise.any(promises).then(nextIterator, nextIterator)
+      : undefined
   );
 
   return {

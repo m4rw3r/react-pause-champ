@@ -89,6 +89,31 @@ describe("<Resume/>", () => {
     );
   });
 
+  it("renders suspended values as undefined and then fills them in, even if they error", async () => {
+    let rejectWaiting: (err: Error) => void;
+    const store = createStore();
+    const waiting = new Promise((_, reject) => (rejectWaiting = reject));
+
+    store.data.set("test", { kind: "value", value: "the value" });
+    // We have to create an entry so the data is properly updated
+    store.data.set("another", newEntry(waiting));
+    const stream = renderToStream(
+      <Provider store={store}>
+        <Resume />
+      </Provider>
+    );
+
+    await expect(stream.chunk()).resolves.toEqual(
+      `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",undefined)</script><!--$?--><template id="B:0"></template><!--/$-->`
+    );
+
+    rejectWaiting!(new Error("asdf"));
+
+    await expect(stream).resolves.toEqual(
+      `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",undefined)</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"error","value":{}})</script><!--$--><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`
+    );
+  });
+
   it("renders multiple suspended values as undefined and then fills them in", async () => {
     let resolveWaiting1: (str: string) => void;
     let resolveWaiting2: (str: string) => void;

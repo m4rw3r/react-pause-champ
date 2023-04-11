@@ -20,10 +20,15 @@ describe("useChamp()", () => {
 
       return <p>{data}</p>;
     };
+    const stream = renderToStream(<MyComponent />);
 
-    await expect(renderToStream(<MyComponent />)).rejects.toEqual(
+    await expect(stream).rejects.toEqual(
       new Error("useChamp() must be inside a <Provider/>.")
     );
+
+    expect(stream.errors).toEqual([
+      new Error("useChamp() must be inside a <Provider/>."),
+    ]);
   });
 
   it("renders the value", async () => {
@@ -33,14 +38,15 @@ describe("useChamp()", () => {
       return <p>{data}</p>;
     };
     const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>
+    );
 
-    await expect(
-      renderToStream(
-        <Provider store={store}>
-          <MyComponent />
-        </Provider>
-      )
-    ).resolves.toEqual("<p>123</p>");
+    await expect(stream).resolves.toEqual("<p>123</p>");
+
+    expect(stream.errors).toEqual([]);
   });
 
   it("waits with rendering in async and produces the full result at once", async () => {
@@ -67,6 +73,7 @@ describe("useChamp()", () => {
     expect(stream.buffer).toHaveLength(0);
     await expect(stream).resolves.toEqual("<p>asdf</p>");
     expect(stream.buffer).toHaveLength(1);
+    expect(stream.errors).toEqual([]);
   });
 
   it("rethrows errors in the render-path", async () => {
@@ -85,8 +92,10 @@ describe("useChamp()", () => {
     );
 
     expect(stream.buffer).toHaveLength(0);
+    expect(stream.errors).toEqual([]);
     await expect(stream).rejects.toEqual(new Error("Error test"));
     expect(stream.buffer).toHaveLength(0);
+    expect(stream.errors).toEqual([new Error("Error test")]);
   });
 
   it("rethrows asynchronous errors in the render-path", async () => {
@@ -113,12 +122,14 @@ describe("useChamp()", () => {
     );
 
     expect(stream.buffer).toHaveLength(0);
+    expect(stream.errors).toEqual([]);
 
     rejectWaiting!(new Error("The error from the test"));
 
     expect(stream.buffer).toHaveLength(0);
     await expect(stream).rejects.toEqual(new Error("The error from the test"));
     expect(stream.buffer).toHaveLength(0);
+    expect(stream.errors).toEqual([new Error("The error from the test")]);
   });
 
   it("with Suspense renders an empty component on async and then streams the update", async () => {
@@ -146,6 +157,7 @@ describe("useChamp()", () => {
       `<!--$?--><template id="B:0"></template>foobar<!--/$-->`
     );
     expect(stream.buffer).toHaveLength(1);
+    expect(stream.errors).toEqual([]);
 
     resolveWaiting!("asdf");
 
@@ -154,6 +166,7 @@ describe("useChamp()", () => {
       `<!--$?--><template id="B:0"></template>foobar<!--/$--><div hidden id="S:0"><p>asdf</p></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`
     );
     expect(stream.buffer).toHaveLength(2);
+    expect(stream.errors).toEqual([]);
   });
 
   it("with Suspense renders and empty component and then updates with the thrown version", async () => {
@@ -177,6 +190,7 @@ describe("useChamp()", () => {
     );
 
     expect(stream.buffer).toHaveLength(0);
+    expect(stream.errors).toEqual([]);
 
     await expect(stream.chunk()).resolves.toEqual(
       `<!--$?--><template id="B:0"></template>foobar<!--/$-->`
@@ -189,6 +203,7 @@ describe("useChamp()", () => {
     expect(stream.buffer).toHaveLength(2);
     expect(stream.buffer[1]).toMatch(/"The error from the test"/);
     expect(stream.buffer[1]).toMatch(/at MyComponent/);
+    expect(stream.errors).toEqual([new Error("The error from the test")]);
   });
 });
 

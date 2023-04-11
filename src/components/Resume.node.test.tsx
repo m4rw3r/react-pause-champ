@@ -9,23 +9,30 @@ import { renderToStream } from "../testutils.node";
 
 describe("<Resume/>", () => {
   it("throws without a <Provider/>", async () => {
-    await expect(renderToStream(<Resume />)).rejects.toEqual(
+    const stream = renderToStream(<Resume />);
+
+    await expect(stream).rejects.toEqual(
       new Error(`<Resume/> must be inside a <Provider/>.`)
     );
+
+    expect(stream.errors).toEqual([
+      new Error(`<Resume/> must be inside a <Provider/>.`),
+    ]);
   });
 
   it("renders empty Map constructor without data", async () => {
     const store = createStore();
+    const stream = renderToStream(
+      <Provider store={store}>
+        <Resume />
+      </Provider>
+    );
 
-    await expect(
-      renderToStream(
-        <Provider store={store}>
-          <Resume />
-        </Provider>
-      )
-    ).resolves.toEqual(
+    await expect(stream).resolves.toEqual(
       `<script async="">window.snapshot=new Map()</script><!--$--><!--/$-->`
     );
+
+    expect(stream.errors).toEqual([]);
   });
 
   it("renders Map with data entry", async () => {
@@ -33,15 +40,17 @@ describe("<Resume/>", () => {
 
     store.data.set("test", { kind: "value", value: "the value" });
 
-    await expect(
-      renderToStream(
-        <Provider store={store}>
-          <Resume />
-        </Provider>
-      )
-    ).resolves.toEqual(
+    const stream = renderToStream(
+      <Provider store={store}>
+        <Resume />
+      </Provider>
+    );
+
+    await expect(stream).resolves.toEqual(
       `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"})</script><!--$--><!--/$-->`
     );
+
+    expect(stream.errors).toEqual([]);
   });
 
   it("renders Map with multiple data entries", async () => {
@@ -53,15 +62,17 @@ describe("<Resume/>", () => {
       value: { complex: ["data", 235, true] },
     });
 
-    await expect(
-      renderToStream(
-        <Provider store={store}>
-          <Resume />
-        </Provider>
-      )
-    ).resolves.toEqual(
+    const stream = renderToStream(
+      <Provider store={store}>
+        <Resume />
+      </Provider>
+    );
+
+    await expect(stream).resolves.toEqual(
       `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"value","value":{"complex":["data",235,true]}})</script><!--$--><!--/$-->`
     );
+
+    expect(stream.errors).toEqual([]);
   });
 
   it("renders suspended values as undefined and then fills them in", async () => {
@@ -82,11 +93,15 @@ describe("<Resume/>", () => {
       `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",undefined)</script><!--$?--><template id="B:0"></template><!--/$-->`
     );
 
+    expect(stream.errors).toEqual([]);
+
     resolveWaiting!("foobar");
 
     await expect(stream).resolves.toEqual(
       `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",undefined)</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"value","value":"foobar"})</script><!--$--><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`
     );
+
+    expect(stream.errors).toEqual([]);
   });
 
   it("renders suspended values as undefined and then fills them in, even if they error", async () => {
@@ -107,11 +122,16 @@ describe("<Resume/>", () => {
       `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",undefined)</script><!--$?--><template id="B:0"></template><!--/$-->`
     );
 
+    expect(stream.errors).toEqual([]);
+
     rejectWaiting!(new Error("asdf"));
 
     await expect(stream).resolves.toEqual(
       `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",undefined)</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"error","value":{}})</script><!--$--><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`
     );
+
+    // The error is not thrown in a component since we are actually not rendering the component with the error
+    expect(stream.errors).toEqual([]);
   });
 
   it("renders multiple suspended values as undefined and then fills them in", async () => {
@@ -137,6 +157,8 @@ describe("<Resume/>", () => {
       `<script async="">window.snapshot=new Map();window.snapshot.set("wait1",undefined);window.snapshot.set("wait2",undefined)</script><!--$?--><template id="B:0"></template><!--/$-->`
     );
 
+    expect(stream.errors).toEqual([]);
+
     resolveWaiting1!("waiting 1 data");
 
     // This render also added more data
@@ -148,8 +170,12 @@ describe("<Resume/>", () => {
       `<div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",undefined)</script><!--$?--><template id="B:1"></template><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`
     );
 
+    expect(stream.errors).toEqual([]);
+
     resolveWaiting2!("should");
     resolveWaiting3!("be simultaneous");
+
+    expect(stream.errors).toEqual([]);
 
     await expect(stream.chunk()).resolves.toEqual(
       `<div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`
@@ -157,5 +183,7 @@ describe("<Resume/>", () => {
     await expect(stream).resolves.toEqual(
       `<script async="">window.snapshot=new Map();window.snapshot.set("wait1",undefined);window.snapshot.set("wait2",undefined)</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",undefined)</script><!--$?--><template id="B:1"></template><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script><div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`
     );
+
+    expect(stream.errors).toEqual([]);
   });
 });

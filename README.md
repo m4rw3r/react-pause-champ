@@ -5,7 +5,7 @@ with Suspense and Server-Side-Rendering support.
 
 ## Features
 
-- `useState`-like API
+- [React `useState`](https://react.dev/reference/react/useState)-like API
 
   Pass an identifier and an initial value to the `useChamp` hook and you get
   the current value and a setter, almost exactly like React's `useState`!
@@ -82,7 +82,7 @@ function Counter(): JSX.Element {
 /**
  * Isomorphic asynchronous fetch with SSR- and Suspense-support.
  */
-function Page({ pageId: string }): JSX.Element {
+function Page({ pageId }: { pageId: string }): JSX.Element {
   const [{ title, data }] = useChamp(`page.${pageId}`, async () => {
     const { title, data } = await fetchPageData();
 

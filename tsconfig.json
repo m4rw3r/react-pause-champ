@@ -4,7 +4,7 @@
 
     /* Language and Environment */
     "target": "es2021",
-    "lib": ["es2021"],
+    "lib": ["dom", "es2021"],
     "jsx": "react",
     "jsxFactory": "createElement",
     "jsxFragmentFactory": "Fragment",
@@ -24,6 +24,7 @@
     /* Interop Constraints */
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
 
     /* Type Checking */
     "strict": true,

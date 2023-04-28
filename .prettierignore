@@ -1,0 +1,7 @@
+/coverage
+/dist
+/examples/*/dist
+/examples/*/node_modules
+/node_modules
+/pnpm-lock.yaml
+*.tgz

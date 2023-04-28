@@ -8,18 +8,18 @@
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "prebuild": "npm run clean",
-    "build": "npm run build:d.ts && npm run build:js",
+    "prebuild": "pnpm run clean",
+    "build": "pnpm run build:d.ts && pnpm run build:js",
     "build:d.ts": "rollup -c",
     "build:js": "tsc --project tsconfig.build.json",
     "check": "tsc --noEmit",
     "lint": "eslint .",
     "clean": "rm -rf coverage dist",
-    "dist": "npm run check && npm run test && npm run format:check && npm run build && npm run lint && npm run examples",
-    "examples": "cd examples/vite-ssr && npm run dist",
-    "format": "prettier --ignore-path .gitignore -w .",
-    "format:check": "prettier --ignore-path .gitignore -c .",
-    "prepack": "npm run dist",
+    "dist": "pnpm run check && pnpm run test && pnpm run format:check && pnpm run build && pnpm run lint && pnpm run examples",
+    "examples": "cd examples/vite-ssr && pnpm run dist",
+    "format": "prettier -w .",
+    "format:check": "prettier -c .",
+    "prepack": "pnpm run dist",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -44,7 +44,8 @@
     "dist/*"
   ],
   "engine": {
-    "node": " >=14.13.1 || >=16.0.0"
+    "node": " >=14.13.1 || >=16.0.0",
+    "pnpm": ">=3"
   },
   "peerDependencies": {
     "react": "^18"
@@ -52,21 +53,22 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
-    "@types/jest": "^29.5.0",
-    "@types/react": "^18.0.29",
-    "@types/react-dom": "^18.0.11",
-    "@typescript-eslint/eslint-plugin": "^5.57.1",
-    "@typescript-eslint/parser": "^5.57.1",
-    "eslint": "^8.37.0",
+    "@types/jest": "^29.5.1",
+    "@types/node": "^18.16.2",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.1",
+    "@typescript-eslint/eslint-plugin": "^5.59.1",
+    "@typescript-eslint/parser": "^5.59.1",
+    "eslint": "^8.39.0",
     "jest": "^29.5.0",
     "jest-environment-jsdom": "^29.5.0",
-    "prettier": "^2.8.7",
+    "prettier": "^2.8.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "rollup": "^3.20.2",
+    "rollup": "^3.21.0",
     "rollup-plugin-dts": "^5.3.0",
-    "ts-jest": "^29.0.5",
+    "ts-jest": "^29.1.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.4"
   }
 }

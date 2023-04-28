@@ -2,31 +2,31 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "prebuild": "npm run clean",
+    "prebuild": "pnpm run clean",
     "build": "vavite --mode=production",
     "check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "dev": "vite",
-    "dist": "npm run check && npm run build",
+    "dist": "pnpm run check && pnpm run build",
     "preview": "vite preview",
-    "prod": "npm run build && npm run start",
+    "prod": "pnpm run build && pnpm run start",
     "start": "node dist/server"
   },
   "dependencies": {
-    "@m4rw3r/react-pause-champ": "../..",
+    "@m4rw3r/react-pause-champ": "link:../..",
     "express": "^4.18.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
-    "@types/react": "^18.0.32",
-    "@types/react-dom": "^18.0.11",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.1",
     "@vitejs/plugin-react": "^3.1.0",
-    "typescript": "^5.0.3",
+    "typescript": "^5.0.4",
     "vavite": "^1.7.0",
-    "vite": "^4.2.1",
-    "vite-plugin-ssr": "^0.4.110",
-    "vite-tsconfig-paths": "^4.0.8"
+    "vite": "^4.3.3",
+    "vite-plugin-ssr": "^0.4.118",
+    "vite-tsconfig-paths": "^4.2.0"
   }
 }

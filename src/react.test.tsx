@@ -60,7 +60,7 @@ describe("useRef({})", () => {
     const { rerender, container } = render(
       <StrictMode>
         <MyComponent />
-      </StrictMode>
+      </StrictMode>,
     );
 
     expect(events).toHaveLength(2);
@@ -75,7 +75,7 @@ describe("useRef({})", () => {
     rerender(
       <StrictMode>
         <MyComponent />
-      </StrictMode>
+      </StrictMode>,
     );
 
     expect(events).toHaveLength(4);
@@ -99,7 +99,7 @@ describe("useRef({})", () => {
         t = s;
         return s;
       },
-      () => "error"
+      () => "error",
     );
     const events: ComponentEvent[] = [];
 
@@ -277,7 +277,7 @@ describe("useSyncExternalStore()", () => {
     const { rerender, container } = render(
       <StrictMode>
         <MyComponent />
-      </StrictMode>
+      </StrictMode>,
     );
 
     expect(events).toHaveLength(13);
@@ -314,7 +314,7 @@ describe("useSyncExternalStore()", () => {
     rerender(
       <StrictMode>
         <MyComponent />
-      </StrictMode>
+      </StrictMode>,
     );
 
     expect(events).toHaveLength(19);

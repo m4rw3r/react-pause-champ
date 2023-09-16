@@ -127,7 +127,7 @@ export interface EntryMeta {
 export function listen(
   store: Store,
   id: string,
-  listener: Callback
+  listener: Callback,
 ): Unregister {
   const listeners = store.listeners.get(id) ?? new Set();
 
@@ -158,7 +158,7 @@ export function getEntry(store: Store, id: string): Entry<unknown> | undefined {
  */
 export function getSnapshot(
   store: Store,
-  id: string
+  id: string,
 ): Entry<unknown> | undefined {
   return store.snapshot?.get(id);
 }
@@ -188,8 +188,8 @@ export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
           new Error(
             `Asynchronous state update of '${id}' completed after ${
               currentEntry ? "being replaced" : "unmount"
-            }.`
-          )
+            }.`,
+          ),
         );
       }
     };
@@ -208,7 +208,7 @@ export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
  */
 export function restoreEntryFromSnapshot(
   store: Store,
-  id: string
+  id: string,
 ): Entry<unknown> {
   // This callback should only be triggered for hydrating components,
   // which means they MUST have a server-snapshot:
@@ -268,7 +268,7 @@ export function checkEntry(
   store: Store,
   id: string,
   persistent: boolean,
-  cid: Record<never, never>
+  cid: Record<never, never>,
 ): void {
   /* eslint-disable @typescript-eslint/no-non-null-assertion */
   // This should be populated if we are in dev-mode
@@ -277,7 +277,7 @@ export function checkEntry(
   if (meta) {
     if (meta.persistent !== persistent) {
       throw new Error(
-        `State '${id}' is ${meta.persistent ? "" : "not "}persistent.`
+        `State '${id}' is ${meta.persistent ? "" : "not "}persistent.`,
       );
     }
 

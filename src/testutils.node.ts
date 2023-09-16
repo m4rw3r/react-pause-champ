@@ -27,7 +27,7 @@ export function renderToStream(component: ReactNode): StreamParts {
     stream._write = function (
       chunk: string,
       _encoding: string,
-      callback: Callback
+      callback: Callback,
     ) {
       const chunkStr = chunk.toString();
       buffer.push(chunkStr);

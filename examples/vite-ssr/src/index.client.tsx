@@ -34,5 +34,5 @@ hydrateRoot(
   root,
   <Provider store={window.store}>
     <App />
-  </Provider>
+  </Provider>,
 );

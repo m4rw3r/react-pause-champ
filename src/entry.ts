@@ -47,7 +47,7 @@ export function newEntry<T>(value: Promise<T> | T): Entry<T> {
         suspendable.value = error;
 
         throw error;
-      }
+      },
     ),
   };
 

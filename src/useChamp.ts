@@ -183,7 +183,7 @@ export interface UseChampOptions {
 export function useChamp<T>(
   id: string,
   initialState: Init<T>,
-  options: UseChampOptions = {}
+  options: UseChampOptions = {},
 ): [T, UpdateCallback<T>] {
   const store = useContext(Context);
 
@@ -219,12 +219,12 @@ export function useChamp<T>(
     ],
     // We do not include `initialState` in dependencies since it is only run
     // once and any changes after that should not affect anything
-    [store, id, persistent, guard]
+    [store, id, persistent, guard],
   );
 
   // Unwrap at end once we have initialized all hooks
   const value = unwrapEntry(
-    useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+    useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot),
   );
 
   return [value, update];
@@ -277,7 +277,7 @@ function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
   if (!entry) {
     try {
       entry = newEntry(
-        typeof init === "function" ? (init as InitFn<T>)() : init
+        typeof init === "function" ? (init as InitFn<T>)() : init,
       );
     } catch (e: unknown) {
       // If the init fails, save it and propagate it as an error into the
@@ -303,7 +303,7 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
     throw new Error(
       `State update of '${id}' requires a value (was ${
         entry ? entry.kind : "empty"
-      }).`
+      }).`,
     );
   }
 
@@ -313,7 +313,7 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
     entry = newEntry(
       typeof update === "function"
         ? (update as UpdateFn<T>)(entry.value)
-        : update
+        : update,
     );
   } catch (e: unknown) {
     // If the update fails, propagate it as an error into the component
@@ -331,7 +331,7 @@ function subscribeState(
   id: string,
   persistent: boolean,
   callback: Unregister,
-  guard: MutableRefObject<Guard | undefined>
+  guard: MutableRefObject<Guard | undefined>,
 ): Unregister {
   // Subscribe to updates, but also drop the state-data if we are unmounting
   const unsubscribe = listen(store, id, callback);
@@ -377,6 +377,6 @@ export function canUseDOM(): boolean {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- null
       window.document &&
       // eslint-disable-next-line @typescript-eslint/unbound-method -- Presence check
-      window.document.createElement
+      window.document.createElement,
   );
 }

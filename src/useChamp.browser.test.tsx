@@ -88,14 +88,14 @@ function renderHook<P extends unknown[], T>(
   } = render(
     <Wrapper>
       <TestComponent args={args} />
-    </Wrapper>
+    </Wrapper>,
   );
 
   function rerender(...args: P) {
     baseRerender(
       <Wrapper>
         <TestComponent args={args} />
-      </Wrapper>
+      </Wrapper>,
     );
 
     jest.runAllTimers();
@@ -141,7 +141,7 @@ describe("useChamp()", () => {
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(0);
     expect(error.current).toEqual(
-      new Error("useChamp() must be inside a <Provider/>.")
+      new Error("useChamp() must be inside a <Provider/>."),
     );
     expect(getEntry(store, "test")).toEqual(undefined);
   });
@@ -154,7 +154,7 @@ describe("useChamp()", () => {
       "throw-test",
       () => {
         throw rejection;
-      }
+      },
     );
 
     expect(error.all).toHaveLength(1);
@@ -177,7 +177,7 @@ describe("useChamp()", () => {
       useChamp,
       { wrapper: Wrapper },
       "async-throw-test",
-      () => waiting
+      () => waiting,
     );
 
     expect(error.all).toHaveLength(0);
@@ -201,7 +201,7 @@ describe("useChamp()", () => {
       useChamp,
       { wrapper: Wrapper },
       "test",
-      testObject1
+      testObject1,
     );
 
     expect(error.all).toHaveLength(0);
@@ -241,7 +241,7 @@ describe("useChamp()", () => {
       useChamp,
       { wrapper: Wrapper },
       "test",
-      testObject
+      testObject,
     );
 
     expect(error.all).toHaveLength(0);
@@ -288,7 +288,7 @@ describe("useChamp()", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-init",
-      init
+      init,
     );
 
     expect(error.all).toHaveLength(0);
@@ -321,7 +321,7 @@ describe("useChamp()", () => {
     };
 
     const duplicateStateError = new Error(
-      "State 'the-duplicate-id' is already mounted in another component."
+      "State 'the-duplicate-id' is already mounted in another component.",
     );
 
     expect(() =>
@@ -331,8 +331,8 @@ describe("useChamp()", () => {
             <MyComponent />
             <MyDuplicateComponent />
           </div>
-        </Provider>
-      )
+        </Provider>,
+      ),
     ).toThrow(duplicateStateError);
 
     expect(consoleError.mock.calls).toHaveLength(2);
@@ -340,7 +340,7 @@ describe("useChamp()", () => {
       expect.objectContaining({
         detail: duplicateStateError,
         type: "unhandled exception",
-      })
+      }),
     );
   });
 
@@ -353,7 +353,7 @@ describe("useChamp()", () => {
     let resolve: (str: string) => void;
     const theValue = new Promise<string>((r) => (resolve = r));
     const duplicateStateError = new Error(
-      "State 'the-duplicate-id' is already mounted in another component."
+      "State 'the-duplicate-id' is already mounted in another component.",
     );
 
     const MyComponent = (): JSX.Element => {
@@ -373,7 +373,7 @@ describe("useChamp()", () => {
           <MyComponent />
           <MyDuplicateComponent />
         </div>
-      </Provider>
+      </Provider>,
     );
 
     expect(consoleError.mock.calls).toHaveLength(0);
@@ -395,7 +395,7 @@ describe("useChamp()", () => {
       expect.objectContaining({
         detail: duplicateStateError,
         type: "unhandled exception",
-      })
+      }),
     );
     expect(container.innerHTML).toEqual("");
   });
@@ -429,7 +429,7 @@ describe("useChamp() when hydrating", () => {
       <Provider store={store}>
         <MyComponent />
       </Provider>,
-      { hydrate: true, container }
+      { hydrate: true, container },
     );
     jest.runAllTimers();
 
@@ -438,7 +438,7 @@ describe("useChamp() when hydrating", () => {
       expect.objectContaining({
         detail: noSnapshotError,
         type: "unhandled exception",
-      })
+      }),
     );
     expect(container.innerHTML).toEqual("<p>test-new</p>");
     expect(init.mock.calls).toHaveLength(1);
@@ -458,7 +458,7 @@ describe("useChamp() when hydrating", () => {
     store = fromSnapshot(new Map());
 
     const noSnapshotError = new Error(
-      "Server-snapshot is missing 'test-unsuspend'."
+      "Server-snapshot is missing 'test-unsuspend'.",
     );
     const container = document.createElement("div");
     const init = jest.fn(() => ({ text: "test-new" }));
@@ -481,7 +481,7 @@ describe("useChamp() when hydrating", () => {
       <Provider store={store}>
         <MyComponent />
       </Provider>,
-      { hydrate: true, container }
+      { hydrate: true, container },
     );
     jest.runAllTimers();
 
@@ -490,7 +490,7 @@ describe("useChamp() when hydrating", () => {
       expect.objectContaining({
         detail: noSnapshotError,
         type: "unhandled exception",
-      })
+      }),
     );
     expect(container.innerHTML).toEqual("<p>test-new</p>");
     expect(init.mock.calls).toHaveLength(1);
@@ -532,7 +532,7 @@ describe("useChamp() when hydrating", () => {
       <Provider store={store}>
         <MyComponent />
       </Provider>,
-      { hydrate: true, container }
+      { hydrate: true, container },
     );
     jest.runAllTimers();
 
@@ -589,7 +589,7 @@ describe("useChamp() when hydrating", () => {
           <MyComponent />
         </Provider>
       </StrictMode>,
-      { hydrate: true, container }
+      { hydrate: true, container },
     );
     jest.runAllTimers();
 
@@ -620,7 +620,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test",
-      1
+      1,
     );
 
     expect(error.all).toHaveLength(0);
@@ -668,7 +668,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async",
-      dataObj
+      dataObj,
     );
 
     expect(error.all).toHaveLength(0);
@@ -735,7 +735,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
-      dataObj
+      dataObj,
     );
 
     expect(error.all).toHaveLength(0);
@@ -783,8 +783,8 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed after unmount."
-      )
+        "Asynchronous state update of 'test-update-async-unmount' completed after unmount.",
+      ),
     );
     expect(container.innerHTML).toEqual("");
     expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
@@ -805,7 +805,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
-      dataObj
+      dataObj,
     );
 
     expect(error.all).toHaveLength(0);
@@ -847,7 +847,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
-      dataObj
+      dataObj,
     ));
 
     expect(error.all).toHaveLength(0);
@@ -870,8 +870,8 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(1);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced."
-      )
+        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced.",
+      ),
     );
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
@@ -899,7 +899,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
-      dataObj
+      dataObj,
     );
 
     expect(error.all).toHaveLength(0);
@@ -941,7 +941,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-unmount",
-      () => waiting2
+      () => waiting2,
     ));
 
     expect(error.all).toHaveLength(0);
@@ -964,8 +964,8 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(0);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced."
-      )
+        "Asynchronous state update of 'test-update-async-unmount' completed after being replaced.",
+      ),
     );
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
@@ -1008,7 +1008,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async-old",
-      dataObj
+      dataObj,
     );
 
     expect(error.all).toHaveLength(0);
@@ -1062,8 +1062,8 @@ describe("useChamp().update", () => {
     expect(result.all).toHaveLength(2);
     expect(consoleError).toHaveBeenCalledWith(
       new Error(
-        "Asynchronous state update of 'test-update-async-old' completed after unmount."
-      )
+        "Asynchronous state update of 'test-update-async-old' completed after unmount.",
+      ),
     );
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-old")).toBeUndefined();
@@ -1079,7 +1079,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "update-throw-test",
-      "init"
+      "init",
     );
 
     expect(error.all).toHaveLength(0);
@@ -1098,7 +1098,7 @@ describe("useChamp().update", () => {
     await act(() =>
       update(() => {
         throw testError;
-      })
+      }),
     );
 
     expect(error.all).toHaveLength(1);
@@ -1123,7 +1123,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "update-async-throw-test",
-      "init"
+      "init",
     );
 
     expect(error.all).toHaveLength(0);
@@ -1177,7 +1177,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test",
-      1
+      1,
     );
 
     expect(error.all).toHaveLength(0);
@@ -1196,7 +1196,7 @@ describe("useChamp().update", () => {
     await act(() =>
       update(() => {
         throw new Error("this test error");
-      })
+      }),
     );
 
     expect(error.all).toHaveLength(1);
@@ -1216,7 +1216,7 @@ describe("useChamp().update", () => {
     }
 
     expect(caughtError).toEqual(
-      new Error("State update of 'test' requires a value (was error).")
+      new Error("State update of 'test' requires a value (was error)."),
     );
     expect(error.all).toHaveLength(1);
     expect(result.all).toHaveLength(1);
@@ -1234,7 +1234,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test",
-      1
+      1,
     );
 
     expect(error.all).toHaveLength(0);
@@ -1259,7 +1259,7 @@ describe("useChamp().update", () => {
     }
 
     expect(caughtError).toEqual(
-      new Error("State update of 'test' requires a value (was empty).")
+      new Error("State update of 'test' requires a value (was empty)."),
     );
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
@@ -1280,7 +1280,7 @@ describe("useChamp().update", () => {
       useChamp,
       { wrapper: Wrapper },
       "test-update-async",
-      dataObj
+      dataObj,
     );
 
     expect(error.all).toHaveLength(0);
@@ -1315,8 +1315,8 @@ describe("useChamp().update", () => {
 
     expect(caughtError).toEqual(
       new Error(
-        "State update of 'test-update-async' requires a value (was suspended)."
-      )
+        "State update of 'test-update-async' requires a value (was suspended).",
+      ),
     );
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
@@ -1378,7 +1378,7 @@ describe("useChamp(persistent)", () => {
     };
 
     const notPersistentStateError = new Error(
-      "State 'test' is not persistent."
+      "State 'test' is not persistent.",
     );
 
     expect(() =>
@@ -1386,8 +1386,8 @@ describe("useChamp(persistent)", () => {
         <Provider store={store}>
           <MyComponent />
           <MyOtherComponent />
-        </Provider>
-      )
+        </Provider>,
+      ),
     ).toThrow(notPersistentStateError);
     jest.runAllTimers();
 
@@ -1396,7 +1396,7 @@ describe("useChamp(persistent)", () => {
       expect.objectContaining({
         detail: notPersistentStateError,
         type: "unhandled exception",
-      })
+      }),
     );
     expect(init.mock.calls).toHaveLength(1);
     // We still expect both to have rendered, we check things in an effect
@@ -1438,8 +1438,8 @@ describe("useChamp(persistent)", () => {
         <Provider store={store}>
           <MyOtherComponent />
           <MyComponent />
-        </Provider>
-      )
+        </Provider>,
+      ),
     ).toThrow(persistentStateError);
     jest.runAllTimers();
 
@@ -1448,7 +1448,7 @@ describe("useChamp(persistent)", () => {
       expect.objectContaining({
         detail: persistentStateError,
         type: "unhandled exception",
-      })
+      }),
     );
     expect(init.mock.calls).toHaveLength(1);
     // We still expect both to have rendered, we check things in an effect
@@ -1482,7 +1482,7 @@ describe("useChamp(persistent)", () => {
       <Provider store={store}>
         <MyComponent />
         <MyOtherComponent />
-      </Provider>
+      </Provider>,
     );
     jest.runAllTimers();
 

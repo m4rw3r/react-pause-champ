@@ -173,7 +173,7 @@ export function ResumeScript({
     parts.push(
       `${identifier}.set(${JSON.stringify(id)},${
         value.kind === "suspended" ? "undefined" : JSON.stringify(value)
-      })`
+      })`,
     );
   }
 
@@ -188,7 +188,7 @@ export function ResumeScript({
 export function createStateDataIterator(
   store: Store,
   emitted?: Set<string> | undefined,
-  suspended?: Set<Promise<unknown>> | undefined
+  suspended?: Set<Promise<unknown>> | undefined,
 ): EntryIterator {
   // Clone the sets to avoid having re-renders skip parts they previously had
   emitted = emitted ? new Set(emitted) : new Set();
@@ -226,7 +226,7 @@ export function createStateDataIterator(
   const next = newEntry(
     promises.length > 0
       ? Promise.any(promises).then(nextIterator, nextIterator)
-      : undefined
+      : undefined,
   );
 
   return {

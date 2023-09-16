@@ -22,14 +22,14 @@ function createViteDevHtmlTransform(path: string) {
 
         if (!viteDevServer) {
           throw new Error(
-            "Vite dev server is undefined, have you started the entrypoint using vite?"
+            "Vite dev server is undefined, have you started the entrypoint using vite?",
           );
         }
 
         // The path is used for some relative URLs/imports
         viteDevServer.transformIndexHtml(path, chunk.toString()).then(
           (data) => callback(null, data),
-          (error: Error) => callback(error, null)
+          (error: Error) => callback(error, null),
         );
       } else {
         callback(null, chunk);
@@ -44,7 +44,7 @@ const clientEntryPath = "/src/index.client.tsx";
 // Since this is a handler, we cannot use any ExpressJS types
 export default function handler(
   req: IncomingMessage,
-  res: ServerResponse
+  res: ServerResponse,
 ): void {
   const stream = renderToPipeableStream(createAppRoot(), {
     // Vite uses module-bundling:

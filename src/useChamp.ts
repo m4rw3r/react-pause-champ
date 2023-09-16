@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { Context } from "./components/Provider";
-import { Entry, newEntry, unwrapEntry } from "./entry";
+import { Entry, createEntry, unwrapEntry } from "./entry";
 import {
   Store,
   Unregister,
@@ -276,7 +276,7 @@ function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
 
   if (!entry) {
     try {
-      entry = newEntry(
+      entry = createEntry(
         typeof init === "function" ? (init as InitFn<T>)() : init,
       );
     } catch (e: unknown) {
@@ -310,7 +310,7 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
   try {
     // We trigger a re-render through listeners which will then throw for
     // Suspense/ErrorBoundary in the component:
-    entry = newEntry(
+    entry = createEntry(
       typeof update === "function"
         ? (update as UpdateFn<T>)(entry.value)
         : update,

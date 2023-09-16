@@ -1,7 +1,7 @@
 import { Fragment, Suspense, createElement, useContext } from "react";
 
 import { Context } from "./Provider";
-import { Entry, newEntry, unwrapEntry } from "../entry";
+import { Entry, createEntry, unwrapEntry } from "../entry";
 import { Store } from "../store";
 
 /**
@@ -223,7 +223,7 @@ export function createStateDataIterator(
     return createStateDataIterator(store, emitted, suspended);
   }
 
-  const next = newEntry(
+  const next = createEntry(
     promises.length > 0
       ? Promise.any(promises).then(nextIterator, nextIterator)
       : undefined,

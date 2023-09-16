@@ -4,7 +4,7 @@
 
 import { createElement } from "react";
 import { Provider, Resume, createStore } from "..";
-import { newEntry } from "../entry";
+import { createEntry } from "../entry";
 import { renderToStream } from "../testutils.node";
 
 describe("<Resume/>", () => {
@@ -111,7 +111,7 @@ describe("<Resume/>", () => {
 
     store.data.set("test", { kind: "value", value: "the value" });
     // We have to create an entry so the data is properly updated
-    store.data.set("another", newEntry(waiting));
+    store.data.set("another", createEntry(waiting));
     const stream = renderToStream(
       <Provider store={store}>
         <Resume />
@@ -144,8 +144,8 @@ describe("<Resume/>", () => {
     const waiting3 = new Promise((resolve) => (resolveWaiting3 = resolve));
 
     // start with 2
-    store.data.set("wait1", newEntry(waiting1));
-    store.data.set("wait2", newEntry(waiting2));
+    store.data.set("wait1", createEntry(waiting1));
+    store.data.set("wait2", createEntry(waiting2));
 
     const stream = renderToStream(
       <Provider store={store}>
@@ -162,8 +162,8 @@ describe("<Resume/>", () => {
     resolveWaiting1!("waiting 1 data");
 
     // This render also added more data
-    store.data.set("baz", newEntry("the value"));
-    store.data.set("wait3", newEntry(waiting3));
+    store.data.set("baz", createEntry("the value"));
+    store.data.set("wait3", createEntry(waiting3));
 
     // Grab a chunk, we have more
     await expect(stream.chunk()).resolves.toEqual(

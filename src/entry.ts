@@ -26,7 +26,7 @@ export type Entry<T> =
  *
  * @internal
  */
-export function newEntry<T>(value: Promise<T> | T): Entry<T> {
+export function createEntry<T>(value: Promise<T> | T): Entry<T> {
   // Special-casing the non-promise case to avoid an extra re-render on
   // state initialization.
   if (!isThenable(value)) {

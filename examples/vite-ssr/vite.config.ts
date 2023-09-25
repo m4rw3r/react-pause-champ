@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import vavite from "vavite";
+import { vavite } from "vavite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default {

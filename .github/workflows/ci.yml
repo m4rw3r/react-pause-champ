@@ -35,7 +35,7 @@ jobs:
 
   check:
     runs-on: ubuntu-latest
-    name: "Lint"
+    name: "Typecheck"
     strategy:
       matrix:
         node-version:

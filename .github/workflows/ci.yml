@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: "Build & Test: node-${{matrix.node-version}}"
+    strategy:
+      matrix:
+        node-version:
+          - 20
+          - 18
+          - 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js ${{matrix.node-version}}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{matrix.node-version}}
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build
+        run: pnpm run build
+      - name: Test
+        run: pnpm run test
+      - name: Build examples
+        run: pnpm run -r --filter './examples/*' build
+
+  check:
+    runs-on: ubuntu-latest
+    name: "Lint"
+    strategy:
+      matrix:
+        node-version:
+          - 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js ${{matrix.node-version}}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{matrix.node-version}}
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install
+      # Building the library is required for typechecking examples
+      - name: Build
+        run: pnpm run build
+      - name: Typecheck
+        run: pnpm run check
+
+  lint:
+    runs-on: ubuntu-latest
+    name: "Lint"
+    strategy:
+      matrix:
+        node-version:
+          - 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js ${{matrix.node-version}}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{matrix.node-version}}
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install
+      # Building the library is required for linting of examples
+      - name: Build
+        run: pnpm run build
+      - name: Lint
+        run: pnpm run lint
+      - name: Check formatting
+        run: pnpm run format:check

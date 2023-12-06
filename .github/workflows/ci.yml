@@ -7,23 +7,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: "Build & Test: node-${{matrix.node-version}}"
-    strategy:
-      matrix:
-        node-version:
-          - 20
-          - 18
-          - 16
+    name: Build & Test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
           version: 8
-      - name: Use Node.js ${{matrix.node-version}}
+      - name: Use Node.js LTS
         uses: actions/setup-node@v3
         with:
-          node-version: ${{matrix.node-version}}
-          cache: "pnpm"
+          node-version: lts/*
+          cache: pnpm
       - name: Install dependencies
         run: pnpm install
       - name: Build
@@ -36,20 +30,16 @@ jobs:
   check:
     runs-on: ubuntu-latest
     name: "Typecheck"
-    strategy:
-      matrix:
-        node-version:
-          - 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
           version: 8
-      - name: Use Node.js ${{matrix.node-version}}
+      - name: Use Node.js LTS
         uses: actions/setup-node@v3
         with:
-          node-version: ${{matrix.node-version}}
-          cache: "pnpm"
+          node-version: lts/*
+          cache: pnpm
       - name: Install dependencies
         run: pnpm install
       # Building the library is required for typechecking examples
@@ -60,21 +50,17 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    name: "Lint"
-    strategy:
-      matrix:
-        node-version:
-          - 20
+    name: Lint
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
         with:
           version: 8
-      - name: Use Node.js ${{matrix.node-version}}
+      - name: Use Node.js LTS
         uses: actions/setup-node@v3
         with:
-          node-version: ${{matrix.node-version}}
-          cache: "pnpm"
+          node-version: lts/*
+          cache: pnpm
       - name: Install dependencies
         run: pnpm install
       # Building the library is required for linting of examples

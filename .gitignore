@@ -1,6 +1,10 @@
-/coverage
-/dist
-/examples/*/dist
-/examples/*/node_modules
-/node_modules
 *.tgz
+.DS_Store
+.env
+.eslintcache
+.nyc_output
+.pnpm-debug.log
+coverage
+dist
+node_modules
+packages/*/.npmrc

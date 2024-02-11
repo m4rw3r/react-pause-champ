@@ -1,0 +1,55 @@
+{
+  "name": "@m4rw3r/react-pause-champ",
+  "version": "0.1.2",
+  "description": "Isomorphic React hook providing async-aware stateful variables to components, with Suspense and Server-Side-Rendering support",
+  "type": "module",
+  "exports": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "pnpm run \"/^build:.*/\"",
+    "build:d.ts": "rollup -c",
+    "build:js": "tsc --project tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "clean": "rm -rf coverage dist",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "async",
+    "hook",
+    "isomorphic",
+    "react",
+    "react-hooks",
+    "ssr",
+    "state",
+    "suspense"
+  ],
+  "author": "Martin Wernstål <m4rw3r@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m4rw3r/react-pause-champ"
+  },
+  "homepage": "https://github.com/m4rw3r/react-pause-champ",
+  "files": [
+    "dist/*"
+  ],
+  "engine": {
+    "node": " >=14.13.1 || >=16.0.0",
+    "pnpm": ">=3"
+  },
+  "peerDependencies": {
+    "react": "^18"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "jest-environment-jsdom": "^29.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

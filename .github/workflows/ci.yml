@@ -24,8 +24,6 @@ jobs:
         run: pnpm run build
       - name: Test
         run: pnpm run test
-      - name: Build examples
-        run: pnpm run -r --filter './examples/*' build
 
   check:
     runs-on: ubuntu-latest
@@ -42,9 +40,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install
-      # Building the library is required for typechecking examples
-      - name: Build
-        run: pnpm run build
       - name: Typecheck
         run: pnpm run check
 
@@ -63,9 +58,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install
-      # Building the library is required for linting of examples
-      - name: Build
-        run: pnpm run build
       - name: Lint
         run: pnpm run lint
       - name: Check formatting

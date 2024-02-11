@@ -17,7 +17,7 @@
       This way TypeScipt will resolve and compile the library as if it was a
       part of our project and we will not have to build the main project first.
       */
-      "@m4rw3r/react-pause-champ": ["../../src"]
+      "@m4rw3r/react-pause-champ": ["../../packages/react-pause-champ/src"]
     }
   },
   /* Reset include from base tsconfig */

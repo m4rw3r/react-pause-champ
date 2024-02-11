@@ -1,8 +1,6 @@
-/.pnpm-store
-/coverage
-/dist
-/examples/*/dist
-/examples/*/node_modules
-/node_modules
-/pnpm-lock.yaml
+.pnpm-store
+coverage
+dist
+node_modules
+pnpm-lock.yaml
 *.tgz

@@ -1,75 +1,38 @@
 {
-  "name": "@m4rw3r/react-pause-champ",
-  "version": "0.1.2",
-  "description": "Isomorphic React hook providing async-aware stateful variables to components, with Suspense and Server-Side-Rendering support",
-  "type": "module",
-  "exports": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "sideEffects": false,
-  "scripts": {
-    "build": "pnpm run build:d.ts && pnpm run build:js",
-    "build:d.ts": "rollup -c",
-    "build:js": "tsc --project tsconfig.build.json",
-    "check": "tsc --noEmit",
-    "lint": "eslint .",
-    "clean": "rm -rf coverage dist",
-    "dist": "pnpm run -r clean && pnpm -r run check && pnpm run -r test && pnpm run format:check && pnpm run -r build && pnpm run lint",
-    "format": "prettier -w .",
-    "format:check": "prettier -c .",
-    "prepack": "pnpm run dist",
-    "test": "jest",
-    "test:watch": "jest --watch"
-  },
-  "keywords": [
-    "async",
-    "hook",
-    "isomorphic",
-    "react",
-    "react-hooks",
-    "ssr",
-    "state",
-    "suspense"
-  ],
-  "author": "Martin Wernstål <m4rw3r@gmail.com>",
-  "license": "MIT",
+  "homepage": "https://github.com/m4rw3r/react-pause-champ",
   "repository": {
     "type": "git",
     "url": "https://github.com/m4rw3r/react-pause-champ"
   },
-  "homepage": "https://github.com/m4rw3r/react-pause-champ",
-  "files": [
-    "dist/*"
+  "authors": [
+    "Martin Wernstål <m4rw3r@gmail.com>"
   ],
-  "engine": {
-    "node": " >=14.13.1 || >=16.0.0",
-    "pnpm": ">=3"
-  },
-  "peerDependencies": {
-    "react": "^18"
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm -r build",
+    "check": "pnpm -r check",
+    "lint": "eslint .",
+    "clean": "pnpm -r clean",
+    "dist": "pnpm run clean && pnpm run check && pnpm run test && pnpm run format:check && pnpm run build && pnpm run lint",
+    "format": "prettier -w .",
+    "format:check": "prettier -c .",
+    "prepack": "pnpm run dist",
+    "test": "pnpm -r test"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.4.2",
-    "@testing-library/react": "^14.2.1",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.17",
-    "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.19",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
     "prettier": "^3.2.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "rollup": "^4.10.0",
     "rollup-plugin-dts": "^6.1.0",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
-  },
-  "pnpm": {
-    "include-workspace-root": true
   }
 }

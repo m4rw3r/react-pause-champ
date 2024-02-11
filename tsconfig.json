@@ -45,6 +45,17 @@
       "@m4rw3r/react-pause-champ": ["./src"]
     }
   },
+  /* Tool configuration */
+  "ts-node": {
+    "moduleTypes": {
+      /*
+      Manually declare that all jest.config.ts files are ES Modules
+      See https://github.com/jestjs/jest/issues/11453#issuecomment-877653950
+      and https://typestrong.org/ts-node/docs/module-type-overrides/
+      */
+      "jest.config.ts": "esm"
+    }
+  },
   "exclude": [
     /*
     Vite is not compatible with moduleResolution: node anymore, see

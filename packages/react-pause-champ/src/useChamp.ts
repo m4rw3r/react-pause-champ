@@ -59,7 +59,7 @@ export type InitFn<T> = () => T | Promise<T>;
  * @see {@link Init}
  * @see {@link UpdateCallback}
  */
-export type Update<T> = T | UpdateFn<T>;
+export type Update<T> = T | Promise<T> | UpdateFn<T>;
 /**
  * A function creating a new value for a stateful variable from
  * {@link useChamp}.

@@ -12,7 +12,7 @@
     /* Modules */
     "module": "esnext",
     "rootDir": ".",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
 
     /* Emit */
     "declaration": true,
@@ -39,6 +39,16 @@
     "noUncheckedIndexedAccess": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
-    "skipLibCheck": false
-  }
+    "skipLibCheck": false,
+
+    "paths": {
+      /*
+      Not required normally.
+      We have to manually declare this here since it is technically a monorepo.
+      This way TypeScipt will resolve and compile the library as if it was a
+      part of our project.
+      */
+      "@m4rw3r/react-pause-champ": ["./src", "../../src"]
+    },
+  },
 }

@@ -1,8 +1,9 @@
 import react from "@vitejs/plugin-react";
 import { vavite } from "vavite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from "vite";
 
-export default {
+export default defineConfig({
   buildSteps: [
     {
       name: "client",
@@ -39,4 +40,4 @@ export default {
       // serverEntry: mode === "development" ? "src/index.vite-dev.ts" : "src/index.node.ts",
     }),
   ],
-};
+});

@@ -2,12 +2,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "prebuild": "pnpm run clean",
     "build": "vavite --mode=production",
-    "check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "dev": "vite",
-    "dist": "pnpm run check && pnpm run build",
     "preview": "vite preview",
     "prod": "pnpm run build && pnpm run start",
     "start": "node dist/server"
@@ -20,13 +17,11 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/react": "^18.2.42",
-    "@types/react-dom": "^18.2.17",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.3.2",
-    "vavite": "^3.0.0",
-    "vite": "^4.5.1",
-    "vite-plugin-ssr": "^0.4.142",
-    "vite-tsconfig-paths": "^4.2.1"
+    "vavite": "^4.0.3",
+    "vite": "^5.1.1",
+    "vite-tsconfig-paths": "^4.3.1"
   }
 }

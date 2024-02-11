@@ -2,9 +2,11 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "paths": {
-      // We have to map client manifest JSON here without relative path so we
-      // can declare types for it in typings.d.ts:
-      "@manifest": ["./dist/client/manifest.json"]
-    }
-  }
+      /*
+      We have to map client manifest JSON here without relative path so we
+      can declare types for it in typings.d.ts:
+      */
+      "@manifest": ["./dist/client/.vite/manifest.json"],
+    },
+  },
 }

@@ -5,7 +5,7 @@ declare module "@manifest" {
   /**
    * Metadata for a bundled/copied file.
    */
-  interface FileMetadata {
+  export interface FileMetadata {
     /**
      * File-path relative the destination folder.
      */
@@ -23,7 +23,7 @@ declare module "@manifest" {
   /**
    * Manifest of generated/copied files during bundling.
    */
-  type Manifest = Readonly<Record<string, Readonly<FileMetadata>>>;
+  export type Manifest = Readonly<Record<string, Readonly<FileMetadata>>>;
 
   const manifest: Manifest;
 

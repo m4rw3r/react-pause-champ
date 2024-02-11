@@ -2,9 +2,9 @@ module.exports = {
   ignorePatterns: ["**/dist/**/*"],
   extends: [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    "plugin:@typescript-eslint/strict",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/stylistic-type-checked",
+    "plugin:@typescript-eslint/strict-type-checked",
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
@@ -13,6 +13,13 @@ module.exports = {
   },
   plugins: ["@typescript-eslint"],
   root: true,
+  rules: {
+    // Problematic in terms of conciseness when chaining a lot
+    "@typescript-eslint/no-confusing-void-expression": "off",
+    // We are throwing promises and other things, makes no sense to pretend
+    // Error is the only thrown thing.
+    "@typescript-eslint/prefer-promise-reject-errors": "off",
+  },
   overrides: [
     {
       files: ["**/*.test.ts", "**/*.test.tsx"],

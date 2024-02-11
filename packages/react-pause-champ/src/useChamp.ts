@@ -373,6 +373,7 @@ function subscribeState(
  */
 export function canUseDOM(): boolean {
   return Boolean(
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     typeof window !== "undefined" &&
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- null
       window.document &&

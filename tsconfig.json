@@ -12,7 +12,7 @@
     /* Modules */
     "module": "esnext",
     "rootDir": ".",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
 
     /* Emit */
     "declaration": true,
@@ -42,13 +42,15 @@
     "skipLibCheck": false,
 
     "paths": {
-      /*
-      Not required normally.
-      We have to manually declare this here since it is technically a monorepo.
-      This way TypeScipt will resolve and compile the library as if it was a
-      part of our project.
-      */
-      "@m4rw3r/react-pause-champ": ["./src", "../../src"]
-    },
+      "@m4rw3r/react-pause-champ": ["./src"]
+    }
   },
+  "exclude": [
+    /*
+    Vite is not compatible with moduleResolution: node anymore, see
+    https://vitejs.dev/guide/migration#rollup-4
+    We typecheck the examples separately.
+    */
+    "./examples/**"
+  ]
 }

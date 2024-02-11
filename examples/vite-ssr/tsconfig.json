@@ -1,12 +1,25 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    /*
+    https://vitejs.dev/guide/migration#rollup-4
+    */
+    "moduleResolution": "bundler",
     "paths": {
       /*
       We have to map client manifest JSON here without relative path so we
       can declare types for it in typings.d.ts:
       */
       "@manifest": ["./dist/client/.vite/manifest.json"],
-    },
+      /*
+      Not required normally.
+      We have to manually declare this here since it is technically a monorepo.
+      This way TypeScipt will resolve and compile the library as if it was a
+      part of our project and we will not have to build the main project first.
+      */
+      "@m4rw3r/react-pause-champ": ["../../src"]
+    }
   },
+  /* Reset include from base tsconfig */
+  "exclude": []
 }

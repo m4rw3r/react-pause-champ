@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "vavite --mode=production",
+    "check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "dev": "vite",
     "preview": "vite preview",

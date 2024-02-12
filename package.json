@@ -31,6 +31,7 @@
     "prettier": "^3.2.5",
     "rollup": "^4.10.0",
     "rollup-plugin-dts": "^6.1.0",
+    "ts-add-js-extension": "^1.6.2",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

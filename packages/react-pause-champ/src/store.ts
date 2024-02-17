@@ -247,7 +247,6 @@ export function dropEntry(store: Store, id: string): void {
   store.data.delete(id);
   store.snapshot?.delete(id);
 
-  // TODO: Do we really not forward stuff here?
   triggerListeners(store, id);
 }
 

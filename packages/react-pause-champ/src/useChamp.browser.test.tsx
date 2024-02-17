@@ -5,8 +5,10 @@ import {
   StrictMode,
   Suspense,
   createElement,
+  useState,
+  useTransition,
 } from "react";
-import { render, act } from "@testing-library/react";
+import { render, act, fireEvent, getByText } from "@testing-library/react";
 
 import {
   Provider,
@@ -16,7 +18,7 @@ import {
   createPersistentState,
 } from "./index";
 import { PERSISTENT_PREFIX, canUseDOM } from "./useChamp";
-import { getEntry, getSnapshot } from "./store";
+import { getEntry, getSnapshot, listenerCount } from "./store";
 
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
@@ -1386,6 +1388,363 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toBe("");
     expect(getEntry(store, "test-update-async")).toBeUndefined();
   });
+});
+
+describe("With useTransition", () => {
+  it("useChamp() will perform an asynchronous update of the DOM", async () => {
+    const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
+
+    //console.error = consoleError;
+    //console.warn = consoleWarn;
+
+    let resolveWaiting: (obj: { name: string }) => void;
+    const waiting = new Promise<{ name: string }>((resolve) => {
+      resolveWaiting = resolve;
+    });
+    const newData = { name: "new-object" };
+
+    function MyComponent(): JSX.Element {
+      const [value] = useChamp("test", waiting);
+
+      return <p>{value.name}</p>;
+    }
+
+    function App(): JSX.Element {
+      const [isTransition, startTransition] = useTransition();
+      const [show, setShow] = useState(false);
+
+      return (
+        <div className={isTransition ? "isTransition" : ""}>
+          <button onClick={() => startTransition(() => setShow(true))}>
+            Show
+          </button>
+          <Suspense fallback={<Suspended />}>
+            {show ? <MyComponent /> : undefined}
+          </Suspense>
+        </div>
+      );
+    }
+
+    function AppContainer(): JSX.Element {
+      return (
+        <Provider store={store}>
+          <App />
+        </Provider>
+      );
+    }
+
+    const { container } = render(<AppContainer />);
+
+    // Initial render should just have the button
+    expect(container.innerHTML).toEqual(
+      `<div class=""><button>Show</button></div>`,
+    );
+    expect(getEntry(store, "test")).toEqual(undefined);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    fireEvent.click(getByText(container, "Show"));
+
+    expect(container.innerHTML).toEqual(
+      `<div class="isTransition"><button>Show</button></div>`,
+    );
+    expect(getEntry(store, "test")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    await act(() => {
+      resolveWaiting(newData);
+
+      expect(container.innerHTML).toEqual(
+        `<div class="isTransition"><button>Show</button></div>`,
+      );
+      expect(getEntry(store, "test")).toEqual({
+        kind: "suspended",
+        value: waiting,
+      });
+      expect(consoleError.mock.calls).toEqual([]);
+      expect(consoleWarn.mock.calls).toEqual([]);
+
+      return waiting;
+    });
+
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: newData,
+    });
+    expect(container.innerHTML).toEqual(
+      `<div class=""><button>Show</button><p>new-object</p></div>`,
+    );
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+  });
+
+  it("useChamp().update will perform an asynchronous update of the DOM", async () => {
+    const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
+
+    console.error = consoleError;
+    console.warn = consoleWarn;
+
+    let resolveWaiting: (obj: { name: string }) => void;
+    const init = { name: "init" };
+    const waiting = new Promise<{ name: string }>((resolve) => {
+      resolveWaiting = resolve;
+    });
+    const newData = { name: "new-object" };
+
+    function MyComponent({
+      startTransition,
+    }: {
+      startTransition: (block: () => void) => void;
+    }): JSX.Element {
+      const [value, setValue] = useChamp("test", init);
+
+      return (
+        <div>
+          <button onClick={() => startTransition(() => setValue(waiting))}>
+            Update
+          </button>
+          <p>{value.name}</p>
+        </div>
+      );
+    }
+
+    function App(): JSX.Element {
+      const [isTransition, startTransition] = useTransition();
+
+      return (
+        <div className={isTransition ? "isTransition" : ""}>
+          <Suspense fallback={<Suspended />}>
+            <MyComponent startTransition={startTransition} />
+          </Suspense>
+        </div>
+      );
+    }
+
+    function AppContainer(): JSX.Element {
+      return (
+        <Provider store={store}>
+          <App />
+        </Provider>
+      );
+    }
+
+    const { container } = render(<AppContainer />);
+
+    // Initial render should just be a plain tree
+    expect(container.innerHTML).toEqual(
+      `<div class=""><div><button>Update</button><p>init</p></div></div>`,
+    );
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: init,
+    });
+    expect(listenerCount(store, "test")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    fireEvent.click(getByText(container, "Update"));
+
+    expect(container.innerHTML).toEqual(
+      `<div class="isTransition"><div><button>Update</button><p>init</p></div></div>`,
+    );
+    expect(getEntry(store, "test")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+    expect(listenerCount(store, "test")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual(
+      `<div class="isTransition"><div><button>Update</button><p>init</p></div></div>`,
+    );
+    expect(getEntry(store, "test")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+    expect(listenerCount(store, "test")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    await act(() => {
+      resolveWaiting(newData);
+
+      jest.runAllTimers();
+
+      expect(container.innerHTML).toEqual(
+        `<div class="isTransition"><div><button>Update</button><p>init</p></div></div>`,
+      );
+      expect(getEntry(store, "test")).toEqual({
+        kind: "suspended",
+        value: waiting,
+      });
+      expect(listenerCount(store, "test")).toEqual(1);
+      expect(consoleError.mock.calls).toEqual([]);
+      expect(consoleWarn.mock.calls).toEqual([]);
+
+      return waiting;
+    });
+
+    expect(getEntry(store, "test")).toEqual({
+      kind: "value",
+      value: newData,
+    });
+    expect(container.innerHTML).toEqual(
+      `<div class=""><div><button>Update</button><p>new-object</p></div></div>`,
+    );
+    expect(listenerCount(store, "test")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+  });
+
+  it("useChamp() with new id will perform an asynchronous update of the DOM", async () => {
+    const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
+
+    console.error = consoleError;
+    console.warn = consoleWarn;
+
+    let resolveWaiting: (obj: { name: string }) => void;
+    const init = { name: "init" };
+    const waiting = new Promise<{ name: string }>((resolve) => {
+      resolveWaiting = resolve;
+    });
+    const newData = { name: "new-object" };
+
+    function MyComponent({ id }: { id: string }): JSX.Element {
+      const [value] = useChamp("test:" + id, id === "init" ? init : waiting);
+
+      return <p>{value.name}</p>;
+    }
+
+    function App(): JSX.Element {
+      const [isTransition, startTransition] = useTransition();
+      const [id, setId] = useState("init");
+
+      return (
+        <div className={isTransition ? "isTransition" : ""}>
+          <button onClick={() => startTransition(() => setId("waiting"))}>
+            Next
+          </button>
+          <Suspense fallback={<Suspended />}>
+            <MyComponent id={id} />
+          </Suspense>
+        </div>
+      );
+    }
+
+    function AppContainer(): JSX.Element {
+      return (
+        <Provider store={store}>
+          <App />
+        </Provider>
+      );
+    }
+
+    const { container } = render(<AppContainer />);
+
+    // Initial render should just have the button
+    expect(container.innerHTML).toEqual(
+      `<div class=""><button>Next</button><p>init</p></div>`,
+    );
+    expect(getEntry(store, "test:init")).toEqual({
+      kind: "value",
+      value: init,
+    });
+    expect(listenerCount(store, "test:init")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    fireEvent.click(getByText(container, "Next"));
+
+    expect(container.innerHTML).toEqual(
+      `<div class="isTransition"><button>Next</button><p>init</p></div>`,
+    );
+    // We have both entries here since we are in the middle of swapping, and
+    // haven't triggered the release yet.
+    expect(getEntry(store, "test:init")).toEqual({
+      kind: "value",
+      value: init,
+    });
+    expect(getEntry(store, "test:waiting")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+    expect(listenerCount(store, "test:init")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual(
+      `<div class="isTransition"><button>Next</button><p>init</p></div>`,
+    );
+    // We still have the old state present since useEffect cleanup has not yet
+    // happened due to the transition still being in-progress
+    expect(getEntry(store, "test:init")).toEqual({
+      kind: "value",
+      value: init,
+    });
+    expect(getEntry(store, "test:waiting")).toEqual({
+      kind: "suspended",
+      value: waiting,
+    });
+    expect(listenerCount(store, "test:init")).toEqual(1);
+    expect(listenerCount(store, "test:waiting")).toEqual(0);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    await act(() => {
+      resolveWaiting(newData);
+
+      return waiting;
+    });
+
+    expect(container.innerHTML).toEqual(
+      `<div class=""><button>Next</button><p>new-object</p></div>`,
+    );
+    // Now the old effect has been destroyed and a new one has been registered,
+    // but the drop timer has not yet been scheduled
+    expect(getEntry(store, "test:init")).toEqual({
+      kind: "value",
+      value: init,
+    });
+    expect(getEntry(store, "test:waiting")).toEqual({
+      kind: "value",
+      value: newData,
+    });
+    // So we have our new listener counts
+    expect(listenerCount(store, "test:init")).toEqual(0);
+    expect(listenerCount(store, "test:waiting")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+
+    jest.runAllTimers();
+
+    // And finally our proper store content
+    expect(getEntry(store, "test:init")).toBeUndefined();
+    expect(getEntry(store, "test:waiting")).toEqual({
+      kind: "value",
+      value: newData,
+    });
+    // So we have our new listener counts
+    expect(listenerCount(store, "test:init")).toEqual(0);
+    expect(listenerCount(store, "test:waiting")).toEqual(1);
+    expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toEqual([]);
+  });
+});
+
+describe("Attempting to tear", () => {
+  // FIXME: Tests
 });
 
 describe("createPersistentState", () => {

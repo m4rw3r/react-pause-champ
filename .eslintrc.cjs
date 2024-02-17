@@ -26,8 +26,8 @@ module.exports = {
       rules: {
         // act() does return a promise
         "@typescript-eslint/await-thenable": "off",
-        //"@typescript-eslint/no-non-null-assertion": "off",
-        //"@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
       },
     },
   ],

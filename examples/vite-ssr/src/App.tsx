@@ -1,6 +1,7 @@
 import { Suspense, createElement, useTransition, useState } from "react";
 import { useChamp } from "@m4rw3r/react-pause-champ";
 
+/*
 function fakeChamp(id, initial) {
   const [data, setData] = useState(["value", initial]);
 
@@ -35,10 +36,17 @@ function fakeChamp(id, initial) {
 
   return [data[1], update];
 }
+*/
 
-function Counter({ id, startTransition }): JSX.Element {
+function Counter({
+  id,
+  startTransition,
+}: {
+  id: string;
+  startTransition: (block: () => void) => void;
+}): JSX.Element {
   // const [counter, update] = useChamp(id, id === "counter0" ? 0 : () => new Promise((resolve) => setTimeout(() => resolve(0), 1000)));
-  const [counter, update] = useChamp(
+  const [counter, update] = useChamp<number>(
     id,
     () => new Promise((resolve) => setTimeout(() => resolve(0), 1000)),
   );

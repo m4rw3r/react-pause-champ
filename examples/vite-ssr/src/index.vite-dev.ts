@@ -26,26 +26,13 @@ function createViteDevHtmlTransform(path: string) {
           );
         }
 
-        // FIXME: Seems to be broken when doing async stuff on server, fails to initialize due to missing preamble
-        callback(
-          null,
-          `
-<script type="module">
-  import RefreshRuntime from 'http://localhost:5173/@react-refresh'
-  RefreshRuntime.injectIntoGlobalHook(window)
-  window.$RefreshReg$ = () => {}
-  window.$RefreshSig$ = () => (type) => type
-  window.__vite_plugin_react_preamble_installed__ = true
-</script>
-<script type="module" src="http://localhost:5173/@vite/client"></script>
-` + chunk.toString(),
-        );
-
+        // FIXME: Seems to be broken when doing async stuff on server, fails to
+        // initialize due to missing preamble, despite being correct
         // The path is used for some relative URLs/imports
-        /*viteDevServer.transformIndexHtml(path, chunk.toString()).then(
+        viteDevServer.transformIndexHtml(path, chunk.toString()).then(
           (data) => callback(null, data),
           (error: Error) => callback(error, null),
-        );*/
+        );
       } else {
         callback(null, chunk);
       }

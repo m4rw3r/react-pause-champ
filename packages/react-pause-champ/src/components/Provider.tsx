@@ -39,4 +39,4 @@ export function Provider({ store, children }: ProviderProps): JSX.Element {
 /**
  * @internal
  */
-export const Context = createContext<Store | null>(null);
+export const Context = createContext<Store | undefined>(undefined);

@@ -48,7 +48,7 @@ export interface Store {
    *
    * @internal
    */
-  readonly meta?: Map<string, EntryMeta>;
+  readonly meta: Map<string, EntryMeta>;
 }
 
 /**
@@ -64,7 +64,7 @@ export function createStore(): Store {
   return {
     data: new Map(),
     listeners: new Map(),
-    ...(process.env.NODE_ENV !== "production" && { meta: new Map() }),
+    meta: new Map(),
   };
 }
 
@@ -91,7 +91,7 @@ export function fromSnapshot(snapshot: Snapshot | undefined): Store {
     data: new Map(),
     listeners: new Map(),
     snapshot,
-    ...(process.env.NODE_ENV !== "production" && { meta: new Map() }),
+    meta: new Map(),
   };
 }
 
@@ -113,7 +113,6 @@ export type Unregister = () => void;
  * @internal
  */
 export interface EntryMeta {
-  persistent: boolean;
   cid: object;
 }
 
@@ -176,7 +175,7 @@ export function getSnapshot(
  * @internal
  */
 export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
-  if (process.env.NODE_ENV !== "production" && entry.kind === "suspended") {
+  if (entry.kind === "suspended") {
     // If we replaced the Entry at the slot we set to, print a warning.
     const verifyCurrentEntry = () => {
       const currentEntry = store.data.get(id);
@@ -184,7 +183,7 @@ export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
       if (currentEntry !== entry) {
         // We cannot throw here, since that will be caught by <React.Suspense/>
         // and ignored, and therefore it will not be printed.
-        console.error(
+        console.warn(
           new Error(
             `Asynchronous state update of '${id}' completed after ${
               currentEntry ? "being replaced" : "unmount"
@@ -206,20 +205,24 @@ export function setEntry<T>(store: Store, id: string, entry: Entry<T>): void {
 /**
  * @internal
  */
-export function restoreEntryFromSnapshot(
+// TODO: Refactor if we use this pattern
+export function restoreEntryFromSnapshot<T>(
   store: Store,
   id: string,
+  fallback: () => Entry<T>,
 ): Entry<unknown> {
   // This callback should only be triggered for hydrating components,
   // which means they MUST have a server-snapshot:
   if (!store.snapshot) {
-    throw new Error(`Server-snapshot is missing.`);
+    return fallback();
+    // throw new Error(`Server-snapshot is missing.`);
   }
 
   const value = getSnapshot(store, id);
 
   if (!value) {
-    throw new Error(`Server-snapshot is missing '${id}'.`);
+    return fallback();
+    // throw new Error(`Server-snapshot is missing '${id}'.`);
   }
 
   // Restore snapshot if not done already, another persistent useChamp() could
@@ -240,13 +243,11 @@ export function restoreEntryFromSnapshot(
  * @internal
  */
 export function dropEntry(store: Store, id: string): void {
-  if (process.env.NODE_ENV !== "production") {
-    store.meta?.delete(id);
-  }
-
+  store.meta.delete(id);
   store.data.delete(id);
   store.snapshot?.delete(id);
 
+  // TODO: Do we really not forward stuff here?
   triggerListeners(store, id);
 }
 
@@ -260,32 +261,8 @@ export function triggerListeners(store: Store, id: string): void {
 }
 
 /**
- * Verfies metadata for persistent and component identity in developer-mode.
- *
  * @internal
  */
-export function checkEntry(
-  store: Store,
-  id: string,
-  persistent: boolean,
-  cid: Record<never, never>,
-): void {
-  /* eslint-disable @typescript-eslint/no-non-null-assertion */
-  // This should be populated if we are in dev-mode
-  const meta = store.meta!.get(id);
-
-  if (meta) {
-    if (meta.persistent !== persistent) {
-      throw new Error(
-        `State '${id}' is ${meta.persistent ? "" : "not "}persistent.`,
-      );
-    }
-
-    if (!meta.persistent && meta.cid !== cid) {
-      throw new Error(`State '${id}' is already mounted in another component.`);
-    }
-  } else {
-    store.meta!.set(id, { persistent, cid });
-  }
-  /* eslint-enable @typescript-eslint/no-non-null-assertion */
+export function listenerCount(store: Store, id: string): number {
+  return store.listeners.get(id)?.size ?? 0;
 }

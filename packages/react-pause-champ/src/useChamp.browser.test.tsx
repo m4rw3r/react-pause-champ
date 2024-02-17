@@ -8,8 +8,14 @@ import {
 } from "react";
 import { render, act } from "@testing-library/react";
 
-import { Provider, createStore, fromSnapshot, useChamp } from "./index";
-import { canUseDOM } from "./useChamp";
+import {
+  Provider,
+  createStore,
+  fromSnapshot,
+  useChamp,
+  createPersistentState,
+} from "./index";
+import { PERSISTENT_PREFIX, canUseDOM } from "./useChamp";
 import { getEntry, getSnapshot } from "./store";
 
 interface Ref<T> {
@@ -31,6 +37,7 @@ const TEST_COMPONENT_ERROR_HTML = /^<p( style="")?>TestComponent.Error<\/p>$/;
 const SUSPENDED_TEST_COMPONENT_HTML =
   /^(<p style="display: none;">TestComponent<\/p>)?<div>Suspended<\/div>$/;
 const oldConsoleError = console.error;
+const oldConsoleWarn = console.warn;
 
 function Suspended(): JSX.Element {
   return <div>Suspended</div>;
@@ -126,6 +133,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.error = oldConsoleError;
+  console.warn = oldConsoleWarn;
 });
 
 describe("canUseDOM()", () => {
@@ -722,8 +730,10 @@ describe("useChamp().update", () => {
 
   it("discards async-updated values from unmounted components", async () => {
     const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
 
     console.error = consoleError;
+    console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
     const waiting = new Promise((resolve) => {
@@ -741,6 +751,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
@@ -757,6 +768,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
@@ -769,6 +781,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
     expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
@@ -781,7 +794,7 @@ describe("useChamp().update", () => {
 
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(consoleWarn).toHaveBeenCalledWith(
       new Error(
         "Asynchronous state update of 'test-update-async-unmount' completed after unmount.",
       ),
@@ -792,8 +805,10 @@ describe("useChamp().update", () => {
 
   it("discards async-updated values from old components", async () => {
     const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
 
     console.error = consoleError;
+    console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
     const waiting = new Promise((resolve) => {
@@ -811,6 +826,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
@@ -827,6 +843,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
@@ -839,6 +856,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
     expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
@@ -853,6 +871,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toEqual("<p>TestComponent</p>");
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "value",
@@ -868,7 +887,8 @@ describe("useChamp().update", () => {
 
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn).toHaveBeenCalledWith(
       new Error(
         "Asynchronous state update of 'test-update-async-unmount' completed after being replaced.",
       ),
@@ -882,8 +902,10 @@ describe("useChamp().update", () => {
 
   it("discards async-updated values from old components even when suspended", async () => {
     const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
 
     console.error = consoleError;
+    console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
     let resolveWaiting2: (obj: { name: string }) => void;
@@ -905,6 +927,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
@@ -921,6 +944,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
@@ -933,6 +957,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toBe("");
     expect(getEntry(store, "test-update-async-unmount")).toBeUndefined();
 
@@ -947,6 +972,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(0);
     expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
@@ -962,7 +988,8 @@ describe("useChamp().update", () => {
 
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(0);
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn).toHaveBeenCalledWith(
       new Error(
         "Asynchronous state update of 'test-update-async-unmount' completed after being replaced.",
       ),
@@ -995,8 +1022,10 @@ describe("useChamp().update", () => {
 
   it("discards async-updated values from old id", async () => {
     const consoleError = jest.fn();
+    const consoleWarn = jest.fn();
 
     console.error = consoleError;
+    console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
     const waiting = new Promise((resolve) => {
@@ -1014,6 +1043,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
@@ -1030,6 +1060,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
     expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current).toBe(undefined);
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-old")).toEqual({
@@ -1042,6 +1073,7 @@ describe("useChamp().update", () => {
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
     expect(consoleError.mock.calls).toEqual([]);
+    expect(consoleWarn.mock.calls).toHaveLength(0);
     expect(result.current[0]).toBe(dataObj);
     expect(result.current[1]).toBeInstanceOf(Function);
     expect(container.innerHTML).toMatch(TEST_COMPONENT_HTML);
@@ -1060,7 +1092,8 @@ describe("useChamp().update", () => {
 
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(2);
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn).toHaveBeenCalledWith(
       new Error(
         "Asynchronous state update of 'test-update-async-old' completed after unmount.",
       ),
@@ -1353,126 +1386,83 @@ describe("useChamp().update", () => {
   });
 });
 
-describe("useChamp(persistent)", () => {
-  it("triggers error if not all uses of the same id are persistent", () => {
+describe("createPersistentState", () => {
+  it("created persistent state does not share data with a normal state with the same name", () => {
     const consoleError = jest.fn();
     // Silence errors
     console.error = consoleError;
 
-    const sharedObj = { name: "shared-obj" };
-    const init = jest.fn(() => sharedObj);
-    const renders: string[] = [];
-    const MyComponent = (): JSX.Element => {
-      const [data] = useChamp("test", init, { persistent: false });
-
-      renders.push("MyComponent");
-
-      return <p>{data.name}</p>;
-    };
-    const MyOtherComponent = (): JSX.Element => {
-      const [data] = useChamp("test", init, { persistent: true });
-
-      renders.push("MyOtherComponent");
-
-      return <p>{data.name}</p>;
-    };
-
-    const notPersistentStateError = new Error(
-      "State 'test' is not persistent.",
-    );
-
-    expect(() =>
-      render(
-        <Provider store={store}>
-          <MyComponent />
-          <MyOtherComponent />
-        </Provider>,
-      ),
-    ).toThrow(notPersistentStateError);
-    jest.runAllTimers();
-
-    expect(consoleError.mock.calls).toHaveLength(2);
-    expect(consoleError.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        detail: notPersistentStateError,
-        type: "unhandled exception",
-      }),
-    );
-    expect(init.mock.calls).toHaveLength(1);
-    // We still expect both to have rendered, we check things in an effect
-    // which is triggered after render
-    expect(renders).toEqual(["MyComponent", "MyOtherComponent"]);
-    expect(getEntry(store, "test")).toEqual({
-      kind: "value",
-      value: sharedObj,
-    });
-  });
-
-  it("triggers error if not all uses of the same id are persistent, reverse", () => {
-    const consoleError = jest.fn();
-    // Silence errors
-    console.error = consoleError;
-
-    const sharedObj = { name: "shared-obj" };
-    const init = jest.fn(() => sharedObj);
-    const renders: string[] = [];
-    const MyComponent = (): JSX.Element => {
-      const [data] = useChamp("test", init, { persistent: false });
-
-      renders.push("MyComponent");
-
-      return <p>{data.name}</p>;
-    };
-    const MyOtherComponent = (): JSX.Element => {
-      const [data] = useChamp("test", init, { persistent: true });
-
-      renders.push("MyOtherComponent");
-
-      return <p>{data.name}</p>;
-    };
-
-    const persistentStateError = new Error("State 'test' is persistent.");
-
-    expect(() =>
-      render(
-        <Provider store={store}>
-          <MyOtherComponent />
-          <MyComponent />
-        </Provider>,
-      ),
-    ).toThrow(persistentStateError);
-    jest.runAllTimers();
-
-    expect(consoleError.mock.calls).toHaveLength(2);
-    expect(consoleError.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        detail: persistentStateError,
-        type: "unhandled exception",
-      }),
-    );
-    expect(init.mock.calls).toHaveLength(1);
-    // We still expect both to have rendered, we check things in an effect
-    // which is triggered after render
-    expect(renders).toEqual(["MyOtherComponent", "MyComponent"]);
-    expect(getEntry(store, "test")).toEqual({
-      kind: "value",
-      value: sharedObj,
-    });
-  });
-
-  it("shares state between multiple components", () => {
-    const sharedObj = { name: "shared-obj" };
-    const init = jest.fn(() => sharedObj);
+    const usePersistent = createPersistentState<{ name: string }>("test");
+    const obj1 = { name: "obj1" };
+    const obj2 = { name: "obj2" };
+    const init = jest.fn(() => obj1);
+    const init2 = jest.fn(() => obj2);
     const renders: { name: string; data: { name: string } }[] = [];
     const MyComponent = (): JSX.Element => {
-      const [data] = useChamp("test", init, { persistent: true });
+      const [data] = useChamp("test", init);
 
       renders.push({ name: "MyComponent", data });
 
       return <p>{data.name}</p>;
     };
     const MyOtherComponent = (): JSX.Element => {
-      const [data] = useChamp("test", init, { persistent: true });
+      const [data] = usePersistent(init2);
+
+      renders.push({ name: "MyOtherComponent", data });
+
+      return <p>{data.name}</p>;
+    };
+
+    const { container } = render(
+      <Provider store={store}>
+        <MyComponent />
+        <MyOtherComponent />
+      </Provider>,
+    );
+    jest.runAllTimers();
+
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toEqual("<p>obj1</p><p>obj2</p>");
+    expect(renders).toEqual([
+      { name: "MyComponent", data: obj1 },
+      { name: "MyOtherComponent", data: obj2 },
+    ]);
+    expect(init.mock.calls).toHaveLength(1);
+    expect(renders[0]!.data).not.toBe(renders[1]!.data);
+    expect(store.data).toEqual(
+      new Map([
+        [
+          "test",
+          {
+            kind: "value",
+            value: obj1,
+          },
+        ],
+        [
+          PERSISTENT_PREFIX + "test",
+          {
+            kind: "value",
+            value: obj2,
+          },
+        ],
+      ]),
+    );
+  });
+
+  it("shares state between multiple components", () => {
+    const usePersistent = createPersistentState<{ name: string }>("test");
+    const sharedObj = { name: "shared-obj" };
+    const init = jest.fn(() => sharedObj);
+    const renders: { name: string; data: { name: string } }[] = [];
+    const MyComponent = (): JSX.Element => {
+      const [data] = usePersistent(init);
+
+      renders.push({ name: "MyComponent", data });
+
+      return <p>{data.name}</p>;
+    };
+    const MyOtherComponent = (): JSX.Element => {
+      const [data] = usePersistent(init);
 
       renders.push({ name: "MyOtherComponent", data });
 
@@ -1493,9 +1483,16 @@ describe("useChamp(persistent)", () => {
     ]);
     expect(init.mock.calls).toHaveLength(1);
     expect(renders[0]!.data).toBe(renders[1]!.data);
-    expect(getEntry(store, "test")).toEqual({
-      kind: "value",
-      value: sharedObj,
-    });
+    expect(store.data).toEqual(
+      new Map([
+        [
+          PERSISTENT_PREFIX + "test",
+          {
+            kind: "value",
+            value: sharedObj,
+          },
+        ],
+      ]),
+    );
   });
 });

@@ -145,11 +145,11 @@ export function ResumeInner({
 export function ResumeNext({
   identifier,
   iter,
-}: ResumeNextProps): JSX.Element | null {
+}: ResumeNextProps): JSX.Element | undefined {
   const next = unwrapEntry(iter.next);
 
   if (!next) {
-    return null;
+    return undefined;
   }
 
   return <ResumeInner identifier={identifier} iter={next} />;
@@ -170,9 +170,12 @@ export function ResumeScript({
   }
 
   for (const [id, value] of items) {
+    // TODO: Actually use holes for the suspended version
     parts.push(
       `${identifier}.set(${JSON.stringify(id)},${
-        value.kind === "suspended" ? "undefined" : JSON.stringify(value)
+        value.kind === "suspended"
+          ? `{"kind":"server-suspended","value":undefined}`
+          : JSON.stringify(value)
       })`,
     );
   }

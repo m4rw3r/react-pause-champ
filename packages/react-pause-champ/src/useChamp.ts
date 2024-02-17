@@ -4,7 +4,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useSyncExternalStore,
+  // useSyncExternalStore,
+  useState,
 } from "react";
 import { Context } from "./components/Provider";
 import { Entry, createEntry, unwrapEntry } from "./entry";
@@ -12,11 +13,11 @@ import {
   Store,
   Unregister,
   listen,
+  listenerCount,
   getEntry,
   setEntry,
   restoreEntryFromSnapshot,
   dropEntry,
-  checkEntry,
 } from "./store";
 
 /**
@@ -90,25 +91,29 @@ export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
  * @param update - The new value, or a function creating the new value
  */
 export type UpdateCallback<T> = (update: Update<T>) => void;
+
+export type UsePersistentLazyState<T> = () => [T, UpdateCallback<T>];
+
+export type UsePersistentState<T> = (
+  initialState: Init<T>,
+) => [T, UpdateCallback<T>];
+
+export type UseSharedState<T> = (
+  initialState: Init<T>,
+) => [T, UpdateCallback<T>];
+
 /**
- * Options for {@link useChamp} hook.
+ * Prefix of persistent states.
  *
- * @public
- * @category Hook
+ * @internal
  */
-export interface UseChampOptions {
-  /**
-   * If the state is persistent.
-   *
-   * @remarks
-   * A persistent state will not get dropped when its component is unmountend,
-   * and will also allow for multiple components to use the same stateful data
-   * simultaneously.
-   *
-   * @defaultValue `true`
-   */
-  persistent?: boolean;
-}
+export const PERSISTENT_PREFIX = "P$";
+/**
+ * Prefix of shared states.
+ *
+ * @internal
+ */
+export const SHARED_PREFIX = "P$";
 
 /**
  * A React hook which adds stateful variables to components, with support
@@ -183,7 +188,108 @@ export interface UseChampOptions {
 export function useChamp<T>(
   id: string,
   initialState: Init<T>,
-  options: UseChampOptions = {},
+): [T, UpdateCallback<T>] {
+  return pauseChamp(id, useCheckEntry, subscribePrivate, initialState);
+}
+
+/**
+ * Creates a typed persistent state with the given id.
+ *
+ * WARNING: Do not create multiple instances of a persistent state with the same
+ * id but with different types. This can cause unintentional mixing of data
+ * of different types, leading to unpredictable behaviour and crashes.
+ *
+ * @example
+ * ```
+ * const usePage = createPeristentState<PageName>("page");
+ *
+ * function MyComponent(): JSX.Element {
+ *   const [page, setPage] = usePage("defaultPage");
+ *
+ *   return (
+ *     <div>
+ *       <ol>
+ *         <li onClick={() => setPage("foo")}>Foo</li>
+ *         <li onClick={() => setPage("bar")}>Bar</li>
+ *       </ol>
+ *       <Page name={page} />
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+// The never type is used here to make sure we actually provide a type if we
+// try to use it, unknown might be too permissive.
+export function createPersistentState<T = never>(
+  id: string,
+): UsePersistentState<T> {
+  return (initialState) =>
+    pauseChamp(
+      PERSISTENT_PREFIX + id,
+      () => {},
+      subscribePersistent,
+      initialState,
+    );
+}
+
+// TODO: Is this a good pattern? Is it even usable really considering it
+// cannot use anything from the component tree?
+/**
+ * ```
+ * const useUser = createPersistentLazyState<User>("user", fetchUser);
+ *
+ * function UserProfile(): JSX.Element {
+ *   const [user] = useUser();
+ * }
+ * ```
+ */
+export function createPersistentLazyState<T = never>(
+  id: string,
+  initialState: InitFn<T>,
+): UsePersistentLazyState<T> {
+  return () =>
+    pauseChamp(
+      PERSISTENT_PREFIX + id,
+      () => {},
+      subscribePersistent,
+      initialState,
+    );
+}
+
+// TODO: Is this a good pattern?
+export function createSharedState<T = never>(id: string): UseSharedState<T> {
+  return (initialState) =>
+    pauseChamp(SHARED_PREFIX + id, () => {}, subscribeShared, initialState);
+}
+
+/**
+ * Strategy used for subscribing to {@link Store} updates.
+ *
+ * @internal
+ */
+type SubscribeStrategy = (
+  store: Store,
+  id: string,
+  guard: MutableRefObject<Guard | undefined>,
+  callback: Unregister,
+) => Unregister;
+
+type CheckStrategy = (
+  store: Store,
+  id: string,
+  guard: Readonly<MutableRefObject<Guard | undefined>>,
+) => void;
+
+/**
+ */
+
+// TODO: Behaviour hooks
+// TODO: Semi-internal?
+export function pauseChamp<T>(
+  id: string,
+  useCheckEntry: CheckStrategy,
+  subscribeStrategy: SubscribeStrategy,
+  initialState: Init<T>,
 ): [T, UpdateCallback<T>] {
   const store = useContext(Context);
 
@@ -191,17 +297,153 @@ export function useChamp<T>(
     throw new Error(`useChamp() must be inside a <Provider/>.`);
   }
 
-  const { persistent = false } = options;
-
-  if (process.env.NODE_ENV !== "production") {
-    useCheckEntry(store, id, persistent);
-  }
-
   // Guard value for cleanup callback, useRef() will remain the same even in
   // <React.StrictMode/>, which means we can use this to ensure we only clean
   // up once the component really unmounts.
   const guard = useRef<Guard>();
 
+  useCheckEntry(store, id, guard);
+
+  const [getEntry, update, getInitialEntry] = useMemo(
+    () => [
+      () => initState(store, id, initialState),
+      (update: Update<T>) => updateState(store, id, update),
+      () =>
+        restoreEntryFromSnapshot(store, id, () =>
+          initState(store, id, initialState),
+        ),
+    ],
+    // We do not include `initialState` in dependencies since it is only run
+    // once and any changes after that should not affect anything
+    [store, id, guard],
+  );
+
+  // We have to track state-updates with useState due to how React is handling
+  // transitions with useSyncExternalStore.
+  //
+  // useSyncExternalStore forces react to perform a synchronous render, which
+  // will trigger Suspense-boundaries and their fallbacks since it does not
+  // have the data available to preserve the temporary component(s). It kind of
+  // is in the name, with sync.
+  //
+  // In essence, React does not have the ability to track external data and
+  // previous versions of it, so we have to manually insert it into useState for
+  // React to keep track of it during transitions.
+  // This also introduces some tricky updates and handling of subscriptions and
+  // server snapshots.
+  //
+  // https://react.dev/reference/react/useSyncExternalStore#caveats
+  // https://react.dev/reference/react/useTransition#starttransition-caveats
+  // https://react.dev/reference/react/startTransition#caveats
+  let [entry, setEntry] = useState(
+    // This can only happen during hydration, or initial render of the component, it never happens during updates
+    getInitialEntry,
+  );
+  const componentId = useRef(id);
+
+  if (componentId.current !== id) {
+    // We are swapping id, so we have to immediately create the new entry to
+    // avoid tearing (new id rendered with old data in the same render).
+    componentId.current = id;
+
+    // Initialize the new data already in its new slot in the Store, useEffect will
+    // register the listener and potentially destroy the old value (depending on the
+    // subscription strategy).
+    entry = getEntry();
+
+    if (entry.kind === "suspended") {
+      // Listen for the actual update, and resynchronize our local state before
+      // React gets to render the component again.
+      entry.value.finally(() => {
+        // Ensure we do not get old updates, in case id has increased while we
+        // were away.
+        if (id === componentId.current) {
+          setEntry(entry);
+        } else {
+          console.warn(
+            new Error(
+              `Discarding suspended update from old id '${id}', component replaced by '${componentId.current}'.`,
+            ),
+          );
+        }
+      });
+    }
+
+    // TODO: Are we sure that this will happen properly? And that the sync
+    // listener here which calls setState in render will not make react fallback?
+    //
+    // This works as long as we do not, but we need tests somehow to verify this
+  }
+
+  // This subscribe/unsubscribe works fine no matter where it is in the
+  // component or when it is run, since react will try to re-render the
+  // component as soon as any promise is resolved. So we do not need to
+  // subscribe to asynchronous updates, just updates.
+  //
+  // Only concern we have is if any update happens in between us rendering, and
+  // subscription being registered. Maybe we need to register inline somehow?
+  // TODO: Tearing-tests
+  useEffect(() => {
+    console.log("Subscribing");
+    // TODO: Can we have a mismatch here? As in tearing? Check the test-suite of useSyncExternalStore
+
+    const unsub = subscribeStrategy(
+      store,
+      id,
+      guard,
+      listen(store, id, () => {
+        if (id === componentId.current) {
+          console.log("Updating state");
+          setEntry(getEntry());
+        } else {
+          console.warn(
+            new Error(
+              `Discarding subscribed update from old id '${id}', component replaced by '${componentId.current}'.`,
+            ),
+          );
+        }
+      }),
+    );
+
+    return () => {
+      console.log("Unsubscribing to", id);
+
+      unsub();
+    };
+  }, [store, id, guard]);
+
+  const value = unwrapEntry(entry);
+
+  // DEBUG
+  // We have to debug after the unwrap, since if it is a promise in progress we
+  // have a mismatch between the promise in the Store, and the old value in the
+  // state, we have to wait until the promise resolves before we can verify
+  // that they are the same
+  if (componentId.current === id) {
+    const currentEntry = getEntry();
+
+    if (entry !== currentEntry) {
+      // TODO: This happens with all useTransition for the same state
+      //
+      // GUESS: React first re-renders the component with all-old data
+      //        then starts a new incremental render in the background with
+      //        the new data which then replaces once it succeeds (ie.
+      //        suspended promise resolves in this case).
+      //
+      // TODO: Do we have to do any kind of sync-shenanigans like we do
+      // when swapping id?
+      console.error(
+        "Mismatch with ",
+        JSON.stringify({
+          id,
+          entry,
+          currentEntry,
+        }),
+      );
+    }
+  }
+
+  /*
   // Make sure we always pass the same functions, both to consumers to avoid
   // re-redering whole trees, but also to useSyncExternalStore() since it will
   // trigger extra logic and maybe re-render
@@ -211,21 +453,27 @@ export function useChamp<T>(
       // We have to swap to restore when we have a DOM and can hydrate, on the
       // server we have to always use initState since we do not have snapshots.
       canUseDOM()
-        ? () => restoreEntryFromSnapshot(store, id) as Entry<T>
+        ? () =>
+            restoreEntryFromSnapshot(store, id, () =>
+              initState(store, id, initialState),
+            ) as Entry<T>
         : () => initState(store, id, initialState),
+      // TODO: Allow more thorough integration so the component can immediately suspend
       (update: Update<T>) => updateState(store, id, update),
-      (callback: () => void) =>
-        subscribeState(store, id, persistent, callback, guard),
+      (callback: () => void) => subscribeStrategy(store, id, guard, callback),
     ],
-    // We do not include `initialState` in dependencies since it is only run
-    // once and any changes after that should not affect anything
-    [store, id, persistent, guard],
+    [store, id, guard],
+  );
+
+  const value = unwrapEntry(
+    usePseudoSyncExternalStore(subscribe, getSnapshot, getServerSnapshot),
   );
 
   // Unwrap at end once we have initialized all hooks
+  /*console.log("useSyncExternalStore");
   const value = unwrapEntry(
     useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot),
-  );
+  );*/
 
   return [value, update];
 }
@@ -241,12 +489,18 @@ interface Guard {
 }
 
 /**
+ * Check verifying the hook is only registered from one component at a time.
+ *
  * @internal
  */
-function useCheckEntry(store: Store, id: string, persistent: boolean): void {
+// TODO: Refactor and cleanup
+function useCheckEntry(store: Store, id: string): void {
   // Unique object for this component instance, used to detect multiple
   // useChamp() attaching on the same id without persistent flag in
   // developer mode
+  //
+  // NOTE: We cannot reuse the guard-ref here since that one is initialized
+  // differently.
   const cid = useRef<Record<never, never>>();
 
   // TODO: useEffect only runs on client, how do we check meta-info
@@ -262,8 +516,18 @@ function useCheckEntry(store: Store, id: string, persistent: boolean): void {
       cid.current = {};
     }
 
-    checkEntry(store, id, persistent, cid.current);
-  }, [store, id, persistent]);
+    const meta = store.meta.get(id);
+
+    if (meta) {
+      if (meta.cid !== cid) {
+        throw new Error(
+          `State '${id}' is already mounted in another component.`,
+        );
+      }
+    } else {
+      store.meta.set(id, { cid });
+    }
+  }, [store, id]);
 }
 
 /**
@@ -326,22 +590,19 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
 /**
  * @internal
  */
-function subscribeState(
+function subscribePrivate(
   store: Store,
   id: string,
-  persistent: boolean,
-  callback: Unregister,
   guard: MutableRefObject<Guard | undefined>,
+  unsubscribe: Unregister,
 ): Unregister {
-  // Subscribe to updates, but also drop the state-data if we are unmounting
-  const unsubscribe = listen(store, id, callback);
   // Include the id so we can ensure we still drop when they do differ
   const nonce = { id };
 
   // Overwrite the guard to cancel any currently scheduled drop
   guard.current = nonce;
 
-  const drop = (): void => {
+  return (): void => {
     unsubscribe();
 
     // Drop the state outside React's render-loop, this ensures that
@@ -358,14 +619,41 @@ function subscribeState(
         guard.current === nonce ||
         (guard.current && guard.current.id !== id)
       ) {
+        // TODO: Shared? and not just persistent? Ie. we drop this if we are
+        // the last listener to it
         dropEntry(store, id);
       }
     }, 0);
   };
+}
 
-  // If we are a persistent state, just return the plain unsubscribe
-  // since we will not drop the state entry.
-  return persistent ? unsubscribe : drop;
+function subscribeShared(
+  store: Store,
+  id: string,
+  _guard: MutableRefObject<Guard | undefined>,
+  unsubscribe: Unregister,
+): Unregister {
+  return (): void => {
+    unsubscribe();
+
+    setTimeout(() => {
+      if (listenerCount(store, id) === 0) {
+        dropEntry(store, id);
+      }
+    }, 0);
+  };
+}
+
+/**
+ * @internal
+ */
+function subscribePersistent(
+  _store: Store,
+  _id: string,
+  _guard: MutableRefObject<Guard | undefined>,
+  callback: Unregister,
+): Unregister {
+  return callback;
 }
 
 /**

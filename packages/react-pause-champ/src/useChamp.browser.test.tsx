@@ -410,12 +410,12 @@ describe("useChamp()", () => {
 });
 
 describe("useChamp() when hydrating", () => {
-  it("throws if no snapshot is present, then React falls back to client-side init", () => {
+  it("React falls back to client-side init", () => {
     const consoleError = jest.fn();
     // Silence and record errors
     console.error = consoleError;
 
-    const noSnapshotError = new Error("Server-snapshot is missing.");
+    // const noSnapshotError = new Error("Server-snapshot is missing.");
     const container = document.createElement("div");
     const init = jest.fn(() => ({ text: "test-new" }));
     const MyComponent = (): JSX.Element => {
@@ -442,12 +442,13 @@ describe("useChamp() when hydrating", () => {
     jest.runAllTimers();
 
     expect(consoleError.mock.calls).toHaveLength(4);
-    expect(consoleError.mock.calls[0][0]).toEqual(
+    // TODO: Remove this if we are not going to treat hydrating differently
+    /*expect(consoleError.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         detail: noSnapshotError,
         type: "unhandled exception",
       }),
-    );
+    );*/
     expect(container.innerHTML).toEqual("<p>test-new</p>");
     expect(init.mock.calls).toHaveLength(1);
     expect(getEntry(store, "test-unsuspend")).toEqual({
@@ -457,7 +458,7 @@ describe("useChamp() when hydrating", () => {
     expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
   });
 
-  it("throws if no snapshot is present for the given id, then React falls back to client-side init", () => {
+  it("React falls back to client-side init if given id is missing snapshot", () => {
     const consoleError = jest.fn();
     // Silence and record errors
     console.error = consoleError;
@@ -465,9 +466,9 @@ describe("useChamp() when hydrating", () => {
     // Just an empty snapshot
     store = fromSnapshot(new Map());
 
-    const noSnapshotError = new Error(
+    /*const noSnapshotError = new Error(
       "Server-snapshot is missing 'test-unsuspend'.",
-    );
+    );*/
     const container = document.createElement("div");
     const init = jest.fn(() => ({ text: "test-new" }));
     const MyComponent = (): JSX.Element => {
@@ -493,13 +494,13 @@ describe("useChamp() when hydrating", () => {
     );
     jest.runAllTimers();
 
-    expect(consoleError.mock.calls).toHaveLength(4);
-    expect(consoleError.mock.calls[0][0]).toEqual(
+    expect(consoleError.mock.calls).toHaveLength(3);
+    /*expect(consoleError.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         detail: noSnapshotError,
         type: "unhandled exception",
       }),
-    );
+    );*/
     expect(container.innerHTML).toEqual("<p>test-new</p>");
     expect(init.mock.calls).toHaveLength(1);
     expect(getEntry(store, "test-unsuspend")).toEqual({
@@ -1009,7 +1010,8 @@ describe("useChamp().update", () => {
 
     expect(error.all).toHaveLength(0);
     expect(result.all).toHaveLength(1);
-    expect(consoleError.mock.calls).toHaveLength(1);
+    expect(consoleError.mock.calls).toHaveLength(0);
+    expect(consoleWarn.mock.calls).toHaveLength(1);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(newDataObj);
     expect(result.current[1]).toBeInstanceOf(Function);

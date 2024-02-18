@@ -18,7 +18,8 @@ import {
   createPersistentState,
 } from "./index";
 import { PERSISTENT_PREFIX, canUseDOM } from "./useChamp";
-import { getEntry, getSnapshot, listenerCount } from "./store";
+import { createEntry } from "./entry";
+import { getEntry, getSnapshot, listenerCount, setEntry } from "./store";
 
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
@@ -1743,7 +1744,45 @@ describe("With useTransition", () => {
   });
 });
 
-describe("Attempting to tear", () => {
+describe("Attempts to tear", () => {
+  it("setEntry during initial render", async () => {
+    const init = { name: "init" };
+    const tear = { name: "tear" };
+    const renders: { name: string; data: { name: string } }[] = [];
+    const MyComponent = (): JSX.Element => {
+      const [data] = useChamp("test", init);
+
+      renders.push({ name: "MyComponent", data });
+
+      return <p>{data.name}</p>;
+    };
+    const VeryMuchNotOk = () => {
+      // This simulates an interrupted React render with state update in the middle
+      setEntry(store, "test", createEntry(tear));
+
+      return <p>{JSON.stringify(getEntry(store, "test")?.value)}</p>;
+    };
+
+    const { container } = render(
+      <Provider store={store}>
+        <MyComponent />
+        <VeryMuchNotOk />
+      </Provider>,
+    );
+
+    expect(container.innerHTML).toEqual(`<p>tear</p><p>{"name":"tear"}</p>`);
+    // This means we immediately re-rendered with the new data
+    expect(renders).toEqual([
+      { name: "MyComponent", data: init },
+      { name: "MyComponent", data: tear },
+    ]);
+    expect(listenerCount(store, "test")).toEqual(1);
+
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual(`<p>tear</p><p>{"name":"tear"}</p>`);
+  });
+
   // FIXME: Tests
 });
 

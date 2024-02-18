@@ -3,8 +3,9 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useCallback,
   useRef,
-  // useSyncExternalStore,
+  useSyncExternalStore,
   useState,
 } from "react";
 import { Context } from "./components/Provider";
@@ -135,16 +136,10 @@ function noop(): void {}
  * updates will get caught and then re-thrown in the component, making it
  * possible to trigger an Error Boundary.
  *
- * By setting the `persistent` option to `true`, multiple components can
- * simultaneously use the same state-instance and data, and they will all
- * respond to the same updates. Mixing persistent and non-persistent uses of
- * the same identifier is prohibited.
- *
  * This hook will check for a number of invariants in development-mode and
  * throws errors or warnings for things like:
  *
- *  * Mixing persistent/non-persistent uses of the same id.
- *  * mounting two non-persistent hooks with the same id simultaneously.
+ *  * Mixing uses of the same id.
  *  * Asynchronous updates finishing after component being unmonted.
  *
  * @public
@@ -152,20 +147,12 @@ function noop(): void {}
  * @typeParam T - The datatype of the stateful variable
  *
  * @param id - Identifier for the data.
- * Must be unique within the same {@link Provider} unless
- * {@link UseChampOptions#persistent | options.persistent} is set.
+ * Must be unique within the same {@link Provider}.
  *
  * @param initialState - The initial data for the state.
  * If the parameter is a {@link InitFn | function} it will be treated as an
  * initializer and executed once during state-initialization and its
  * return-value will be the initial data.
- *
- * @param options - Optional options for the hook
- *
- * @param options.persistent - If the hook should preserve the data after
- * component dismounting.
- * This setting also allows addressing the same state id from multiple
- * components simultaneously
  *
  * @returns A two-element array where the first element is the current value of
  * the stateful variable, and the second value is an
@@ -195,7 +182,9 @@ export function useChamp<T>(
 }
 
 /**
- * Creates a typed persistent state with the given id.
+ * Creates a typed persistent state with the given id, this state can be used
+ * simultaneously in multiple components which then shares the state data and
+ * respond to the same updates.
  *
  * WARNING: Do not create multiple instances of a persistent state with the same
  * id but with different types. This can cause unintentional mixing of data
@@ -229,7 +218,7 @@ export function createPersistentState<T = never>(
     pauseChamp(PERSISTENT_PREFIX + id, noop, subscribePersistent, initialState);
 }
 
-// TODO: Is this a good pattern? Is it even usable really considering it
+// TODO: Is this a good pattern? Is it even useful really considering it
 // cannot use anything from the component tree?
 /**
  * ```
@@ -272,10 +261,11 @@ type CheckStrategy = (
   guard: Readonly<MutableRefObject<Guard | undefined>>,
 ) => void;
 
-const DEBUG = false;
-
 // TODO: Behaviour hooks
 // TODO: Semi-internal?
+/**
+ * @internal
+ */
 export function pauseChamp<T>(
   id: string,
   useCheckEntry: CheckStrategy,
@@ -292,28 +282,9 @@ export function pauseChamp<T>(
   // <React.StrictMode/>, which means we can use this to ensure we only clean
   // up once the component really unmounts.
   const guard = useRef<Guard>();
-  const componentId = useRef(id);
 
   // TODO: Can we reuse some logic here?
   useCheckEntry(store, id, guard);
-
-  // Make sure we always pass the same functions, both to consumers to avoid
-  // re-redering whole trees, but also to useSyncExternalStore() since it will
-  // trigger extra logic and maybe re-render
-  const [getEntry, update, getInitialEntry] = useMemo(
-    () => [
-      () => initState(store, id, initialState),
-      // TODO: Allow more thorough integration so the component can immediately suspend
-      (update: Update<T>) => updateState(store, id, update),
-      () =>
-        restoreEntryFromSnapshot(store, id, () =>
-          initState(store, id, initialState),
-        ) as Entry<T>,
-    ],
-    // We do not include `initialState` in dependencies since it is only run
-    // once and any changes after that should not affect anything
-    [store, id, guard],
-  );
 
   // We have to track state-updates with useState due to how React is handling
   // transitions with useSyncExternalStore.
@@ -333,18 +304,66 @@ export function pauseChamp<T>(
   // https://react.dev/reference/react/useTransition#starttransition-caveats
   // https://react.dev/reference/react/startTransition#caveats
   //
-  // getInitialEntry callback can only be executed during hydration, or initial
+  // initial state callback can only be executed during hydration, or initial
   // render of the component, it never happens during updates.
-  const state = useState(getInitialEntry);
-  const setEntry = state[1];
+  const state = useState(
+    () =>
+      restoreEntryFromSnapshot(store, id, () =>
+        initState(store, id, initialState),
+      ) as Entry<T>,
+  );
+  const setState = state[1];
   let entry = state[0];
+  const component = useRef({ id, entry });
 
-  DEBUG && console.log("Rendering", id, "prev", componentId.current);
+  // Make sure we always pass the same functions, both to consumers to avoid
+  // re-redering whole trees, but also to useSyncExternalStore() since it will
+  // trigger extra logic and maybe re-render
+  // TODO: Allow more thorough integration so the component can immediately suspend
+  const update = useCallback(
+    // TODO: Verify that this setState is needed to preserve desync in the case
+    // of other component/hook suspending during component mount, after update
+    // is called
+    (update: Update<T>) => setState(updateState(store, id, update)),
+    [store, id],
+  );
 
-  if (componentId.current !== id) {
+  // Callback to synchronize the component state with the store
+  // TODO: Refactor
+  const synchronize = useCallback(() => {
+    // Running this multiple times will result in the same result as running it
+    // once, no objects are constructed
+
+    // Ensure we do not get old updates, in case id has changed while we
+    // were away.
+    if (component.current.id === id) {
+      // We should really have an initialized entry here
+      const newEntry = getEntry(store, id) as Entry<T> | undefined;
+
+      if (newEntry) {
+        // Do not update if our last rendered entry is already the new one,
+        // React seems to sometimes still queue updates here for some reason
+        if (newEntry !== component.current.entry) {
+          setState(newEntry);
+        }
+      } else {
+        console.warn(
+          new Error(`Failed to synchronize state '${id}': missing entry`),
+        );
+      }
+    } else {
+      console.warn(
+        new Error(
+          `Discarding subscribed update from old id '${id}', component replaced by '${component.current}'.`,
+        ),
+      );
+    }
+  }, [store, id]);
+
+  if (component.current.id !== id) {
     // We are swapping id, so we have to immediately create or retrieve the new
     // entry to avoid tearing (new id rendered with old data in the same render).
-    componentId.current = id;
+    component.current.id = id;
 
     // NOTE: This swaps back and forth a few times during transitions, so we
     // CANNOT drop any data here, since then we will re-initialize old state
@@ -353,7 +372,7 @@ export function pauseChamp<T>(
     // Initialize the new data already in its new slot in the Store, useEffect will
     // register the listener and potentially destroy the old value (depending on the
     // subscription strategy).
-    entry = getEntry();
+    entry = initState(store, id, initialState);
 
     // We are going to throw here, so make sure we update the local useState
     // before React renders us after the entry got resolved.
@@ -363,35 +382,21 @@ export function pauseChamp<T>(
     // re-render with the internally modified entry which is then a value/error
     // entry.
     if (entry.kind === "suspended") {
-      // TODO: Deduplicate this callback? Maybe register it in ref somehow
-      // keyed on id?
-      void entry.value.finally(() => {
-        // Ensure we do not get old updates, in case id has changed while we
-        // were away.
-        if (id === componentId.current) {
-          // TODO: Check if this setEntry is duplicate with useEffect?
-          DEBUG && console.log("Got update from new init suspension", id);
-          setEntry(entry);
-        } else {
-          // TODO: Is this even something we want here? In the case of
-          // swapping back and forth between two async states?
-          console.warn(
-            new Error(
-              `Discarding suspended update from old id '${id}', component replaced by '${componentId.current}'.`,
-            ),
-          );
-        }
-      });
+      void entry.value.finally(synchronize);
     }
   }
+
+  // Save the current entry we rendered to avoid multiple redraws
+  component.current.entry = entry;
 
   // This subscribe/unsubscribe works fine no matter where it is in the
   // component or when it is run, since react will try to re-render the
   // component as soon as any promise is resolved. So we do not need to
-  // subscribe to asynchronous updates, just updates.
+  // subscribe to asynchronous updates from the store, just updates.
   //
   // Only concern we have is if any update happens in between us rendering, and
-  // subscription being registered. Maybe we need to register inline somehow?
+  // subscription being registered, which we catch by calling synchronize
+  // before registering our listener.
   //
   // NOTE: Cleanup of the useEffect hook in a transition is executed once the
   // full transition is complete. The new state will have to have fully been
@@ -435,33 +440,14 @@ export function pauseChamp<T>(
   // 11. useEffect from id:b is registered
   // 12. scheduled drop of id:a state is performed in store outside react
   //     render loop
-  //
-  // TODO: Tearing-tests
   useEffect(() => {
-    DEBUG && console.log("Subscribing", id);
+    // We have to sychronize here just in case something replaced our entry
+    // during render to avoid tearing:
+    synchronize();
 
-    // TODO: Can we have a mismatch here? As in tearing? Check the test-suite of useSyncExternalStore
-
-    return subscribeStrategy(
-      store,
-      id,
-      guard,
-      listen(store, id, () => {
-        // TODO: This is very similar to the other subscription above
-        // TODO: If we run them double, we get both which is not good
-        if (id === componentId.current) {
-          DEBUG && console.log("Got subscribed update");
-          setEntry(getEntry());
-        } else {
-          console.warn(
-            new Error(
-              `Discarding subscribed update from old id '${id}', component replaced by '${componentId.current}'.`,
-            ),
-          );
-        }
-      }),
-    );
-  }, [store, id, guard]);
+    return subscribeStrategy(store, id, guard, listen(store, id, synchronize));
+    // Technically synchronize will also update on (store, id)
+  }, [store, id, guard, subscribeStrategy, synchronize]);
 
   // NOTE: In the case of useTransition/startTransition the entry value can
   // differ from the current entry obtained using getEntry(), despite ids being
@@ -560,7 +546,7 @@ function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
  *
  * @internal
  */
-function updateState<T>(store: Store, id: string, update: Update<T>): void {
+function updateState<T>(store: Store, id: string, update: Update<T>): Entry<T> {
   let entry = getEntry(store, id) as Entry<T> | undefined;
 
   if (!entry || entry.kind !== "value") {
@@ -585,6 +571,8 @@ function updateState<T>(store: Store, id: string, update: Update<T>): void {
   }
 
   setEntry(store, id, entry);
+
+  return entry;
 }
 
 /**
@@ -604,11 +592,7 @@ function subscribePrivate(
   guard.current = nonce;
 
   return (): void => {
-    DEBUG && console.log("Unsubscribing to", id);
-
     unsubscribe();
-
-    DEBUG && console.log("listeners to", id, listenerCount(store, id));
 
     // Drop the state outside React's render-loop, this ensures that
     // it is not dropped prematurely due to <React.StrictMode/> or
@@ -617,7 +601,6 @@ function subscribePrivate(
       // If the guard has not been modified, our component has not
       // unmounted an then immediately been mounted again which means
       // this is the last cleanup.
-      DEBUG && console.log("Attempting drop", id);
 
       // This case is also triggered if we re-render with a new id to
       // guarantee the old id gets cleaned up.
@@ -625,8 +608,6 @@ function subscribePrivate(
         guard.current === nonce ||
         (guard.current && guard.current.id !== id)
       ) {
-        DEBUG && console.log("Dropping", id);
-
         dropEntry(store, id);
       }
     }, 0);

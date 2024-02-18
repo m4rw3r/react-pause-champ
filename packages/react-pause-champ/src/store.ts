@@ -34,7 +34,7 @@ export interface Store {
    *
    * @internal
    */
-  readonly listeners: Map<string, Set<Callback>>;
+  readonly listeners: Map<string, Set<EntryCallback>>;
   /**
    * Snapshot from server-rendering, a reference to an externally defined Map
    * created by {@link Resume}.
@@ -100,7 +100,7 @@ export function fromSnapshot(snapshot: Snapshot | undefined): Store {
  *
  * @internal
  */
-export type Callback = () => unknown;
+export type EntryCallback = () => unknown;
 
 /**
  * Function used to unregister a listener.
@@ -126,7 +126,7 @@ export interface EntryMeta {
 export function listen(
   store: Store,
   id: string,
-  listener: Callback,
+  listener: EntryCallback,
 ): Unregister {
   const listeners = store.listeners.get(id) ?? new Set();
 
@@ -155,6 +155,7 @@ export function getEntry(store: Store, id: string): Entry<unknown> | undefined {
  *
  * @internal
  */
+// TODO: Remove
 export function getSnapshot(
   store: Store,
   id: string,
@@ -213,16 +214,10 @@ export function restoreEntryFromSnapshot<T>(
 ): Entry<unknown> {
   // This callback should only be triggered for hydrating components,
   // which means they MUST have a server-snapshot:
-  if (!store.snapshot) {
-    return fallback();
-    // throw new Error(`Server-snapshot is missing.`);
-  }
-
-  const value = getSnapshot(store, id);
+  const value = store.snapshot?.get(id);
 
   if (!value) {
     return fallback();
-    // throw new Error(`Server-snapshot is missing '${id}'.`);
   }
 
   // Restore snapshot if not done already, another persistent useChamp() could

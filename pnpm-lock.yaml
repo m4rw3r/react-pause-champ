@@ -76,8 +76,8 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1(vite@5.1.1)
       vavite:
-        specifier: ^4.0.3
-        version: 4.0.3(vite@5.1.1)
+        specifier: ^4.1.1
+        version: 4.1.1(vite@5.1.1)
       vite:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@20.11.17)
@@ -777,7 +777,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -798,14 +798,14 @@ packages:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@20.11.17)(ts-node@10.9.2)
+      jest-config: 29.7.0(@types/node@20.11.19)(ts-node@10.9.2)
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -833,7 +833,7 @@ packages:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       jest-mock: 29.7.0
     dev: true
 
@@ -860,7 +860,7 @@ packages:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -893,7 +893,7 @@ packages:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.22
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       chalk: 4.1.2
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
@@ -981,7 +981,7 @@ packages:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       '@types/yargs': 17.0.32
       chalk: 4.1.2
     dev: true
@@ -1289,7 +1289,7 @@ packages:
   /@types/connect@3.4.38:
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
     dependencies:
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
     dev: true
 
   /@types/estree@1.0.5:
@@ -1317,7 +1317,7 @@ packages:
   /@types/graceful-fs@4.1.9:
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
     dependencies:
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
     dev: true
 
   /@types/http-errors@2.0.4:
@@ -1350,7 +1350,7 @@ packages:
   /@types/jsdom@20.0.1:
     resolution: {integrity: sha512-d0r18sZPmMQr1eG35u12FZfhIXNrnsPU/g5wvRKCUf/tOGilKKwYMYGqh33BNR6ba+2gkHw1EUiHoN3mn7E5IQ==}
     dependencies:
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       '@types/tough-cookie': 4.0.5
       parse5: 7.1.2
     dev: true
@@ -1369,6 +1369,12 @@ packages:
 
   /@types/node@20.11.17:
     resolution: {integrity: sha512-QmgQZGWu1Yw9TDyAP9ZzpFJKynYNeOvwMJmaxABfieQoVoiVOS6MN1WSpqpRcbeA5+RW82kraAVxCCJg+780Qw==}
+    dependencies:
+      undici-types: 5.26.5
+    dev: true
+
+  /@types/node@20.11.19:
+    resolution: {integrity: sha512-7xMnVEcZFu0DikYjWOlRq7NTPETrm7teqUT2WkQjrTIkEgUyyGdWsj/Zg8bEJt5TNklzbPD1X3fqfsHw3SpapQ==}
     dependencies:
       undici-types: 5.26.5
     dev: true
@@ -1411,7 +1417,7 @@ packages:
     resolution: {integrity: sha512-x2EM6TJOybec7c52BX0ZspPodMsQUd5L6PRwOunVyVUhXiBSKf3AezDL8Dgvgt5o0UfKNfuA0eMLr2wLT4AiBA==}
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
     dev: true
 
   /@types/serve-static@1.15.5:
@@ -1576,49 +1582,49 @@ packages:
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
     dev: true
 
-  /@vavite/connect@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-HykADNw7qS+0MZoYbV8v5HYZadGDfBedZy2HZ9WoERF+xtlGRow5w50EreE+sgMd7CphCZ9+VBL2N2TlG3uJOQ==}
+  /@vavite/connect@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-UjJEPX9t1fPNJiDbTzzW/ZIorTipCWO9x9aQ0CkNqtH6+dKnaWI/a03gFiNU+7ybhYI1LxdY17ar10ns7DQ08Q==}
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
     dependencies:
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       vite: 5.1.1(@types/node@20.11.17)
     dev: true
 
-  /@vavite/expose-vite-dev-server@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-GAJ6rSfASudHzpzlRarKZRhXHTs9R0pDHFDAe+CfpEGD//UB7GK/Tdvy5lnS0D3RkXttG+o3MkHVjqVfZcACNw==}
+  /@vavite/expose-vite-dev-server@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-w+FsAF3OvjbITNkuMTxv/t28gGMWs8qngDGgk2OCdBcaQeyrdfAme0jIT4KrIx+GLQjwkzhoZXpQju/E3mbH+Q==}
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
     dependencies:
       vite: 5.1.1(@types/node@20.11.17)
     dev: true
 
-  /@vavite/multibuild-cli@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-j9V1so1ls1PHM/0MeM/DbBbVqdzuX+/xMEq1emi3ZBeluyDbi146Xuf6xfxETkExHvIbYPSYCyys755yC1Dp5A==}
+  /@vavite/multibuild-cli@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-5jixDRjUH8fE3FVVGvlDGTatGrga886RlArCf3IUUpYKkued2qrUcq/BqdxSy6WukY15OS+l5nIVRwm1wB8AIQ==}
     hasBin: true
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
     dependencies:
-      '@types/node': 20.11.17
-      '@vavite/multibuild': 4.0.3(vite@5.1.1)
+      '@types/node': 20.11.19
+      '@vavite/multibuild': 4.1.1(vite@5.1.1)
       cac: 6.7.14
       picocolors: 1.0.0
       vite: 5.1.1(@types/node@20.11.17)
     dev: true
 
-  /@vavite/multibuild@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-Yp5Gf/B0VeoGOoN8bX5BIvJ99yJ4DD2pXMTj0NcZMRTOhhWxRIN5VLrOB4jV1eo/DLi5bHibh2iAiJZCe/YNMQ==}
+  /@vavite/multibuild@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-R+UJWT2wH598OsGNA/NHgUgtOGvyh9kqaDsP/twJa/OJSH+RWgzj+ONQPqbkAYqPYu0NgRb8rkQOK4QJwdLx0A==}
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
     dependencies:
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       cac: 6.7.14
       picocolors: 1.0.0
       vite: 5.1.1(@types/node@20.11.17)
     dev: true
 
-  /@vavite/node-loader@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-fsYuvsMP9a+nyHIR7m+v/Mhh4Zdhlg9W3pW1Bh9RhBGVD+ZaDi3kWFrWCAifdHpCE3Tf1fjAmtWBYFLRxBZGjA==}
+  /@vavite/node-loader@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-3vJ3lnO2yJYE+i7DlZuSc7jUT4z+Fe4yVaxlODHWn1lpkVsXjIz2TfTp6zEJGXZJlhY1SnIzZczfQzA3Gs/NZw==}
     hasBin: true
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
@@ -1626,8 +1632,8 @@ packages:
       vite: 5.1.1(@types/node@20.11.17)
     dev: true
 
-  /@vavite/reloader@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-GgCQKOjnn1VjXl5dEjDGXSTI9XZ/bzqmN+R8swgftEGVlew2whCEZemJQUhnkQkzqvs+gQen7Y0bDhqA2LVHew==}
+  /@vavite/reloader@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-7gzjA9NIVu+eRFATlhWndDKFM78xtBl225AwsnKjhNxUyYES0dLMc7vjH6aFi37S1f/JRRDQDm+ghrCVTUz62A==}
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
     dependencies:
@@ -3229,7 +3235,7 @@ packages:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.5.1
@@ -3319,6 +3325,47 @@ packages:
       - supports-color
     dev: true
 
+  /jest-config@29.7.0(@types/node@20.11.19)(ts-node@10.9.2):
+    resolution: {integrity: sha512-uXbpfeQ7R6TZBqI3/TxCU4q4ttk3u0PJeC+E0zbfSoSjq6bJ7buBPxzQPL0ifrkY4DNu4JUdk0ImlBUYi840eQ==}
+    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+    peerDependencies:
+      '@types/node': '*'
+      ts-node: '>=9.0.0'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      ts-node:
+        optional: true
+    dependencies:
+      '@babel/core': 7.23.9
+      '@jest/test-sequencer': 29.7.0
+      '@jest/types': 29.6.3
+      '@types/node': 20.11.19
+      babel-jest: 29.7.0(@babel/core@7.23.9)
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      deepmerge: 4.3.1
+      glob: 7.2.3
+      graceful-fs: 4.2.11
+      jest-circus: 29.7.0
+      jest-environment-node: 29.7.0
+      jest-get-type: 29.6.3
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-runner: 29.7.0
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      micromatch: 4.0.5
+      parse-json: 5.2.0
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+      ts-node: 10.9.2(@types/node@20.11.17)(typescript@5.3.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+    dev: true
+
   /jest-diff@29.7.0:
     resolution: {integrity: sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -3377,7 +3424,7 @@ packages:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       jest-mock: 29.7.0
       jest-util: 29.7.0
     dev: true
@@ -3393,7 +3440,7 @@ packages:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -3444,7 +3491,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       jest-util: 29.7.0
     dev: true
 
@@ -3499,7 +3546,7 @@ packages:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -3530,7 +3577,7 @@ packages:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       chalk: 4.1.2
       cjs-module-lexer: 1.2.3
       collect-v8-coverage: 1.0.2
@@ -3582,7 +3629,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -3607,7 +3654,7 @@ packages:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -3619,7 +3666,7 @@ packages:
     resolution: {integrity: sha512-eIz2msL/EzL9UFTFFx7jBTkeZfku0yUAyZZZmJ93H2TYEiroIx2PQjEXcwYtYl8zXCxb+PAmA2hLIt/6ZEkPHw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@types/node': 20.11.17
+      '@types/node': 20.11.19
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -4847,18 +4894,18 @@ packages:
     engines: {node: '>= 0.8'}
     dev: false
 
-  /vavite@4.0.3(vite@5.1.1):
-    resolution: {integrity: sha512-nFDju2y09S7sBWPn4qYwZhX4E/SPrbSOyulT9ER7knpXOwjaMvXQNZ20CjqzbO7HGp0k1LSmyF7KvZPIxAfruA==}
+  /vavite@4.1.1(vite@5.1.1):
+    resolution: {integrity: sha512-OoEG1cJyMX6zfvXwO1Au506PUwMzRkeXrjxt6e6dnL9D8T3x7ZsC8HscHtL5u0orS10AMg5FPv1McBW5650e4w==}
     hasBin: true
     peerDependencies:
       vite: ^2.8.1 || 3 || 4 || 5
     dependencies:
-      '@vavite/connect': 4.0.3(vite@5.1.1)
-      '@vavite/expose-vite-dev-server': 4.0.3(vite@5.1.1)
-      '@vavite/multibuild': 4.0.3(vite@5.1.1)
-      '@vavite/multibuild-cli': 4.0.3(vite@5.1.1)
-      '@vavite/node-loader': 4.0.3(vite@5.1.1)
-      '@vavite/reloader': 4.0.3(vite@5.1.1)
+      '@vavite/connect': 4.1.1(vite@5.1.1)
+      '@vavite/expose-vite-dev-server': 4.1.1(vite@5.1.1)
+      '@vavite/multibuild': 4.1.1(vite@5.1.1)
+      '@vavite/multibuild-cli': 4.1.1(vite@5.1.1)
+      '@vavite/node-loader': 4.1.1(vite@5.1.1)
+      '@vavite/reloader': 4.1.1(vite@5.1.1)
       cac: 6.7.14
       picocolors: 1.0.0
       vite: 5.1.1(@types/node@20.11.17)

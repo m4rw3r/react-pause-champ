@@ -93,8 +93,6 @@ export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
  */
 export type UpdateCallback<T> = (update: Update<T>) => void;
 
-export type UsePersistentLazyState<T> = () => [T, UpdateCallback<T>];
-
 export type UsePersistentState<T> = (
   initialState: Init<T>,
 ) => [T, UpdateCallback<T>];
@@ -215,25 +213,6 @@ export function createPersistentState<T = never>(
   id: string,
 ): UsePersistentState<T> {
   return (initialState) =>
-    pauseChamp(PERSISTENT_PREFIX + id, noop, subscribePersistent, initialState);
-}
-
-// TODO: Is this a good pattern? Is it even useful really considering it
-// cannot use anything from the component tree?
-/**
- * ```
- * const useUser = createPersistentLazyState<User>("user", fetchUser);
- *
- * function UserProfile(): JSX.Element {
- *   const [user] = useUser();
- * }
- * ```
- */
-export function createPersistentLazyState<T = never>(
-  id: string,
-  initialState: InitFn<T>,
-): UsePersistentLazyState<T> {
-  return () =>
     pauseChamp(PERSISTENT_PREFIX + id, noop, subscribePersistent, initialState);
 }
 

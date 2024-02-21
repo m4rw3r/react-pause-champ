@@ -324,14 +324,12 @@ export function pauseChamp<T>(
           setState(newEntry);
         }
       } else {
-        console.warn(
-          new Error(`Failed to synchronize state '${id}': missing entry`),
-        );
+        console.warn(new Error(`Synchronize '${id}': missing entry`));
       }
     } else {
       console.warn(
         new Error(
-          `Discarding subscribed update from old id '${id}', component replaced by '${component.current}'.`,
+          `Synchronize '${component.current.id}': discarding update from old id '${id}'.`,
         ),
       );
     }

@@ -1,6 +1,6 @@
-import { Fragment, Suspense, createElement, useContext } from "react";
+import { Fragment, Suspense, createElement } from "react";
 
-import { Context } from "./Provider";
+import { useStore } from "./Provider";
 import { Entry, createEntry, unwrapEntry } from "../entry";
 import { Store } from "../store";
 
@@ -65,11 +65,7 @@ export interface ResumeProps {
 export function Resume({
   identifier = "window.snapshot",
 }: ResumeProps): JSX.Element {
-  const store = useContext(Context);
-
-  if (!store) {
-    throw new Error(`<Resume/> must be inside a <Provider/>.`);
-  }
+  const store = useStore("<Resume/>");
 
   return (
     <ResumeInner

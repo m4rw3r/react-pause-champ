@@ -1,14 +1,10 @@
 import {
   MutableRefObject,
-  useContext,
   useEffect,
-  useMemo,
   useCallback,
   useRef,
-  useSyncExternalStore,
   useState,
 } from "react";
-import { Context } from "./components/Provider";
 import { Entry, createEntry, unwrapEntry } from "./entry";
 import {
   Store,
@@ -20,6 +16,7 @@ import {
   restoreEntryFromSnapshot,
   dropEntry,
 } from "./store";
+import { useStore } from "./components/Provider";
 
 /**
  * Initial value or a function creating the initial value for a stateful
@@ -114,8 +111,6 @@ export const PERSISTENT_PREFIX = "P$";
  */
 export const SHARED_PREFIX = "P$";
 
-function noop(): void {}
-
 /**
  * A React hook which adds stateful variables to components, with support
  * for asynchronous initialization and updates, as well as
@@ -176,7 +171,12 @@ export function useChamp<T>(
   id: string,
   initialState: Init<T>,
 ): [T, UpdateCallback<T>] {
-  return pauseChamp(id, useCheckEntry, subscribePrivate, initialState);
+  const store = useStore("useChamp()");
+
+  // TODO: Can we reuse some logic here?
+  useCheckEntry(store, id);
+
+  return pauseChamp(store, id, subscribePrivate, initialState);
 }
 
 /**
@@ -213,13 +213,26 @@ export function createPersistentState<T = never>(
   id: string,
 ): UsePersistentState<T> {
   return (initialState) =>
-    pauseChamp(PERSISTENT_PREFIX + id, noop, subscribePersistent, initialState);
+    pauseChamp(
+      useStore("use of persistent state hook"),
+      PERSISTENT_PREFIX + id,
+      subscribePersistent,
+      initialState,
+    );
 }
 
-// TODO: Is this a good pattern?
+/**
+ * Creates a state which will be shared by all simultaneous consumers, contents
+ * will be destroyed once all the consuming components have unmounted.
+ */
 export function createSharedState<T = never>(id: string): UseSharedState<T> {
   return (initialState) =>
-    pauseChamp(SHARED_PREFIX + id, noop, subscribeShared, initialState);
+    pauseChamp(
+      useStore("use of shared state hook"),
+      SHARED_PREFIX + id,
+      subscribeShared,
+      initialState,
+    );
 }
 
 /**
@@ -234,36 +247,21 @@ type SubscribeStrategy = (
   callback: Unregister,
 ) => Unregister;
 
-type CheckStrategy = (
-  store: Store,
-  id: string,
-  guard: Readonly<MutableRefObject<Guard | undefined>>,
-) => void;
-
 // TODO: Behaviour hooks
 // TODO: Semi-internal?
 /**
  * @internal
  */
 export function pauseChamp<T>(
+  store: Store,
   id: string,
-  useCheckEntry: CheckStrategy,
   subscribeStrategy: SubscribeStrategy,
   initialState: Init<T>,
 ): [T, UpdateCallback<T>] {
-  const store = useContext(Context);
-
-  if (!store) {
-    throw new Error(`useChamp() must be inside a <Provider/>.`);
-  }
-
   // Guard value for cleanup callback, useRef() will remain the same even in
   // <React.StrictMode/>, which means we can use this to ensure we only clean
   // up once the component really unmounts.
   const guard = useRef<Guard>();
-
-  // TODO: Can we reuse some logic here?
-  useCheckEntry(store, id, guard);
 
   // We have to track state-updates with useState due to how React is handling
   // transitions with useSyncExternalStore.

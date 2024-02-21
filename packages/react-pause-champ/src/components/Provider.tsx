@@ -1,4 +1,4 @@
-import { ReactNode, createContext, createElement } from "react";
+import { ReactNode, createContext, createElement, useContext } from "react";
 
 import { Store } from "../store";
 
@@ -39,4 +39,17 @@ export function Provider({ store, children }: ProviderProps): JSX.Element {
 /**
  * @internal
  */
-export const Context = createContext<Store | undefined>(undefined);
+export const Context = createContext<Store | null>(null);
+
+/**
+ * @internal
+ */
+export function useStore(componentName: string): Store {
+  const store = useContext(Context);
+
+  if (!store) {
+    throw new Error(`${componentName} must be inside a <Provider/>.`);
+  }
+
+  return store;
+}

@@ -1806,7 +1806,7 @@ describe("With useTransition", () => {
 });
 
 describe("Attempts to tear", () => {
-  it("setEntry during initial render", async () => {
+  it("setEntry during initial render", () => {
     const init = { name: "init" };
     const tear = { name: "tear" };
     const renders: { name: string; data: { name: string } }[] = [];

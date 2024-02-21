@@ -1,48 +1,9 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    /* Visit https://aka.ms/tsconfig to read more about this file */
-
-    /* Language and Environment */
-    "target": "es2021",
-    "lib": ["dom", "es2021"],
-    "jsx": "react",
-    "jsxFactory": "createElement",
-    "jsxFragmentFactory": "Fragment",
-
-    /* Modules */
-    "module": "esnext",
-    "rootDir": ".",
-    "moduleResolution": "node",
-
-    /* Emit */
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "stripInternal": true,
-    "declarationDir": "dist",
-
-    /* Interop Constraints */
-    "isolatedModules": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-
-    /* Type Checking */
-    "strict": true,
-    "noImplicitThis": true,
-    "useUnknownInCatchVariables": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
-    "skipLibCheck": false,
-
+    // Monorepo module paths for type checking
     "paths": {
-      "@m4rw3r/react-pause-champ": ["./src"]
+      "@m4rw3r/react-pause-champ": ["./src/react-pause-champ"]
     }
   },
   /* Tool configuration */
@@ -55,13 +16,5 @@
       */
       "jest.config.ts": "esm"
     }
-  },
-  "exclude": [
-    /*
-    Vite is not compatible with moduleResolution: node anymore, see
-    https://vitejs.dev/guide/migration#rollup-4
-    We typecheck the examples separately.
-    */
-    "./examples/**"
-  ]
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   // Typescript has awful defaults, so we have to inlcude/exclude to not get
   // everything including the kitchen sink compiled:
   "include": ["src/**/*.ts", "src/**/*.tsx"],

@@ -176,7 +176,7 @@ export function useChamp<T>(
   // TODO: Can we reuse some logic here?
   useCheckEntry(store, id);
 
-  return pauseChamp(store, id, subscribePrivate, initialState);
+  return useInner(store, id, subscribePrivate, initialState);
 }
 
 /**
@@ -213,8 +213,8 @@ export function createPersistentState<T = never>(
   id: string,
 ): UsePersistentState<T> {
   return (initialState) =>
-    pauseChamp(
-      useStore("use of persistent state hook"),
+    useInner(
+      useStore("Use of persistent state hook"),
       PERSISTENT_PREFIX + id,
       subscribePersistent,
       initialState,
@@ -227,8 +227,8 @@ export function createPersistentState<T = never>(
  */
 export function createSharedState<T = never>(id: string): UseSharedState<T> {
   return (initialState) =>
-    pauseChamp(
-      useStore("use of shared state hook"),
+    useInner(
+      useStore("Use of shared state hook"),
       SHARED_PREFIX + id,
       subscribeShared,
       initialState,
@@ -252,7 +252,7 @@ type SubscribeStrategy = (
 /**
  * @internal
  */
-export function pauseChamp<T>(
+export function useInner<T>(
   store: Store,
   id: string,
   subscribeStrategy: SubscribeStrategy,
@@ -302,7 +302,7 @@ export function pauseChamp<T>(
     // of other component/hook suspending during component mount, after update
     // is called
     (update: Update<T>) => setState(updateState(store, id, update)),
-    [store, id],
+    [store, id, setState],
   );
 
   // Callback to synchronize the component state with the store
@@ -333,7 +333,7 @@ export function pauseChamp<T>(
         ),
       );
     }
-  }, [store, id]);
+  }, [store, id, setState]);
 
   if (component.current.id !== id) {
     // We are swapping id, so we have to immediately create or retrieve the new

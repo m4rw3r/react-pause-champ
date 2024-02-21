@@ -2,6 +2,8 @@ module.exports = {
   ignorePatterns: ["**/dist/**/*"],
   extends: [
     "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/stylistic-type-checked",
     "plugin:@typescript-eslint/strict-type-checked",
@@ -19,6 +21,12 @@ module.exports = {
     // We are throwing promises and other things, makes no sense to pretend
     // Error is the only thrown thing.
     "@typescript-eslint/prefer-promise-reject-errors": "off",
+    "react/react-in-jsx-scope": "off",
+  },
+  settings: {
+    react: {
+      version: "18.0",
+    },
   },
   overrides: [
     {

@@ -112,6 +112,7 @@ describe("useRef({})", () => {
         events.push({ event: "effect", ref: ref.current });
 
         return () => {
+          // eslint-disable-next-line react-hooks/exhaustive-deps
           events.push({ event: "effect.remove", ref: ref.current });
         };
       }, [ref]);

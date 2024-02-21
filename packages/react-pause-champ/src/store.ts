@@ -220,11 +220,13 @@ export function restoreEntryFromSnapshot<T>(
     return fallback();
   }
 
-  // Restore snapshot if not done already, another persistent useChamp() could
-  // have already restored:
+  // Restore snapshot
   if (!store.data.has(id)) {
     store.data.set(id, value);
   }
+
+  // Delete any snapshot so we do not want stale data by accident
+  store.snapshot?.delete(id);
 
   // We do not trigger any listeners here, since listeners are installed after
   // restoration is done

@@ -554,10 +554,7 @@ describe("useChamp() when hydrating", () => {
       kind: "value",
       value: unsuspendedObj,
     });
-    expect(getSnapshot(store, "test-unsuspend")).toEqual({
-      kind: "value",
-      value: unsuspendedObj,
-    });
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
 
     unmount();
     jest.runAllTimers();
@@ -611,10 +608,7 @@ describe("useChamp() when hydrating", () => {
       kind: "value",
       value: unsuspendedObj,
     });
-    expect(getSnapshot(store, "test-unsuspend")).toEqual({
-      kind: "value",
-      value: unsuspendedObj,
-    });
+    expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
 
     unmount();
     jest.runAllTimers();
@@ -623,6 +617,73 @@ describe("useChamp() when hydrating", () => {
     expect(container.innerHTML).toBe("");
     expect(getEntry(store, "test-unsuspend")).toBeUndefined();
     expect(getSnapshot(store, "test-unsuspend")).toBeUndefined();
+  });
+
+  it("value is used by hook, persistent", () => {
+    const unsuspendedObj = { text: "test-unsuspended" };
+    const snapshot = new Map();
+    const container = document.createElement("div");
+    const usePersistent = createPersistentState<{ text: string }>(
+      "test-unsuspend",
+    );
+    const init = jest.fn(() => ({ text: "test-new" }));
+    const MyComponent = (): JSX.Element => {
+      const [{ text }] = usePersistent(init);
+
+      return <p>{text}</p>;
+    };
+
+    const el = document.createElement("p");
+
+    el.innerHTML = "test-unsuspended";
+
+    container.appendChild(el);
+
+    snapshot.set(PERSISTENT_PREFIX + "test-unsuspend", {
+      kind: "value",
+      value: unsuspendedObj,
+    });
+
+    store = fromSnapshot(snapshot);
+
+    expect(
+      getEntry(store, PERSISTENT_PREFIX + "test-unsuspend"),
+    ).toBeUndefined();
+    expect(getSnapshot(store, PERSISTENT_PREFIX + "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+
+    const { unmount } = render(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>,
+      { hydrate: true, container },
+    );
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual("<p>test-unsuspended</p>");
+    expect(init).not.toHaveBeenCalled();
+    expect(getEntry(store, PERSISTENT_PREFIX + "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+    expect(
+      getSnapshot(store, PERSISTENT_PREFIX + "test-unsuspend"),
+    ).toBeUndefined();
+
+    unmount();
+    jest.runAllTimers();
+
+    expect(init.mock.calls).toHaveLength(0);
+    expect(container.innerHTML).toBe("");
+    expect(getEntry(store, PERSISTENT_PREFIX + "test-unsuspend")).toEqual({
+      kind: "value",
+      value: unsuspendedObj,
+    });
+    expect(
+      getSnapshot(store, PERSISTENT_PREFIX + "test-unsuspend"),
+    ).toBeUndefined();
   });
 });
 

@@ -268,7 +268,7 @@ describe("useChamp()", () => {
     await rerender("test2", testObject2);
 
     expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(2);
+    expect(result.all).toHaveLength(3);
     expect(error.all).toHaveLength(0);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
@@ -281,7 +281,7 @@ describe("useChamp()", () => {
     await rerender("test", testObject2);
 
     expect(error.all).toHaveLength(0);
-    expect(result.all).toHaveLength(3);
+    expect(result.all).toHaveLength(5);
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toBe(testObject2);
     expect(getEntry(store, "test")).toEqual({

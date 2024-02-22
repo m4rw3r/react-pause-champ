@@ -3,7 +3,7 @@ import {
   useEffect,
   useCallback,
   useRef,
-  useState,
+  useReducer,
 } from "react";
 import { Entry, createEntry, unwrapEntry } from "./entry";
 import {
@@ -247,8 +247,9 @@ type SubscribeStrategy = (
   callback: Unregister,
 ) => Unregister;
 
-// TODO: Behaviour hooks
-// TODO: Semi-internal?
+type ReducerValue<T> = [Entry<T>, Store, string];
+type Reducer<T> = (prev: ReducerValue<T>) => ReducerValue<T>;
+
 /**
  * @internal
  */
@@ -263,8 +264,8 @@ export function useInner<T>(
   // up once the component really unmounts.
   const guard = useRef<Guard>();
 
-  // We have to track state-updates with useState due to how React is handling
-  // transitions with useSyncExternalStore.
+  // We have to track state-updates with useState/useReducer due to how React
+  // is handling transitions with useSyncExternalStore.
   //
   // useSyncExternalStore forces react to perform a synchronous render, which
   // will trigger Suspense-boundaries and their fallbacks since it does not
@@ -283,62 +284,39 @@ export function useInner<T>(
   //
   // initial state callback can only be executed during hydration, or initial
   // render of the component, it never happens during updates.
-  const state = useState(
-    () =>
+  const [[savedEntry, savedStore, savedId], synchronize] = useReducer<
+    Reducer<T>,
+    unknown
+  >(
+    (prev) => {
+      const newEntry = initState(store, id, initialState);
+
+      // Do not update if our last rendered entry is already the new one,
+      // React seems to sometimes still queue updates here for some reason
+      if (newEntry === prev[0] && store === prev[1] && id === prev[2]) {
+        return prev;
+      }
+
+      return [newEntry, store, id];
+    },
+    undefined,
+    () => [
       restoreEntryFromSnapshot(store, id, () =>
         initState(store, id, initialState),
       ) as Entry<T>,
-  );
-  const setState = state[1];
-  let entry = state[0];
-  const component = useRef({ id, entry });
-
-  // Make sure we always pass the same functions, both to consumers to avoid
-  // re-redering whole trees, but also to useSyncExternalStore() since it will
-  // trigger extra logic and maybe re-render
-  // TODO: Allow more thorough integration so the component can immediately suspend
-  const update = useCallback(
-    // TODO: Verify that this setState is needed to preserve desync in the case
-    // of other component/hook suspending during component mount, after update
-    // is called
-    (update: Update<T>) => setState(updateState(store, id, update)),
-    [store, id, setState],
+      store,
+      id,
+    ],
   );
 
-  // Callback to synchronize the component state with the store
-  // TODO: Refactor
-  const synchronize = useCallback(() => {
-    // Running this multiple times will result in the same result as running it
-    // once, no objects are constructed
+  // Save the current entry we rendered to avoid multiple redraws
+  const entry = useRef(savedEntry);
 
-    // Ensure we do not get old updates, in case id has changed while we
-    // were away.
-    if (component.current.id === id) {
-      // We should really have an initialized entry here
-      const newEntry = getEntry(store, id) as Entry<T> | undefined;
+  entry.current = savedEntry;
 
-      if (newEntry) {
-        // Do not update if our last rendered entry is already the new one,
-        // React seems to sometimes still queue updates here for some reason
-        if (newEntry !== component.current.entry) {
-          setState(newEntry);
-        }
-      } else {
-        console.warn(new Error(`Synchronize '${id}': missing entry`));
-      }
-    } else {
-      console.warn(
-        new Error(
-          `Synchronize '${component.current.id}': discarding update from old id '${id}'.`,
-        ),
-      );
-    }
-  }, [store, id, setState]);
-
-  if (component.current.id !== id) {
+  if (store !== savedStore || id !== savedId) {
     // We are swapping id, so we have to immediately create or retrieve the new
     // entry to avoid tearing (new id rendered with old data in the same render).
-    component.current.id = id;
 
     // NOTE: This swaps back and forth a few times during transitions, so we
     // CANNOT drop any data here, since then we will re-initialize old state
@@ -347,22 +325,20 @@ export function useInner<T>(
     // Initialize the new data already in its new slot in the Store, useEffect will
     // register the listener and potentially destroy the old value (depending on the
     // subscription strategy).
-    entry = initState(store, id, initialState);
+    entry.current = initState(store, id, initialState);
 
-    // We are going to throw here, so make sure we update the local useState
-    // before React renders us after the entry got resolved.
-    //
-    // This is not necessary in the case of the initial render, when the entry
-    // in the useState is the promise we are waiting on, since react will
-    // re-render with the internally modified entry which is then a value/error
-    // entry.
-    if (entry.kind === "suspended") {
-      void entry.value.finally(synchronize);
-    }
+    // Notify react that we need to synchronize the reducer contents
+    synchronize();
   }
 
-  // Save the current entry we rendered to avoid multiple redraws
-  component.current.entry = entry;
+  // Make sure we always pass the same functions, both to consumers to avoid
+  // re-redering whole trees, but also to useSyncExternalStore() since it will
+  // trigger extra logic and maybe re-render
+  // TODO: Allow more thorough integration so the component can immediately suspend
+  const update = useCallback(
+    (update: Update<T>) => updateState(store, id, update),
+    [store, id],
+  );
 
   // This subscribe/unsubscribe works fine no matter where it is in the
   // component or when it is run, since react will try to re-render the
@@ -418,10 +394,11 @@ export function useInner<T>(
   useEffect(() => {
     // We have to sychronize here just in case something replaced our entry
     // during render to avoid tearing:
-    synchronize();
+    if (entry.current !== getEntry(store, id)) {
+      synchronize();
+    }
 
     return subscribeStrategy(store, id, guard, listen(store, id, synchronize));
-    // Technically synchronize will also update on (store, id)
   }, [store, id, guard, subscribeStrategy, synchronize]);
 
   // NOTE: In the case of useTransition/startTransition the entry value can
@@ -434,7 +411,7 @@ export function useInner<T>(
   // replaces the old tree once it finishes with a final flip back and forth.
 
   // We can now unwrap since we have initialized all hooks
-  const value = unwrapEntry(entry);
+  const value = unwrapEntry(entry.current);
 
   return [value, update];
 }

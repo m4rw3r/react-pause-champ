@@ -90,13 +90,60 @@ export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
  */
 export type UpdateCallback<T> = (update: Update<T>) => void;
 
+/**
+ * React hook which lets components use the same state across multiple
+ * components, with the data persisting across component umounts.
+ *
+ * @public
+ * @category Hook
+ * @typeParam T - The datatype of the stateful variable
+ */
 export type UsePersistentState<T> = (
   initialState: Init<T>,
 ) => [T, UpdateCallback<T>];
 
+/**
+ * React hook which lets components consume a single shared state, the data will
+ * be dropped once all components have unmounted.
+ *
+ * @public
+ * @category Hook
+ * @typeParam T - The datatype of the stateful variable
+ */
 export type UseSharedState<T> = (
   initialState: Init<T>,
 ) => [T, UpdateCallback<T>];
+
+/**
+ * Guard preventing multiple destructors from running based on object identity
+ * as well as the stored id.
+ *
+ * @internal
+ */
+interface Guard {
+  id: string;
+}
+
+/**
+ * Strategy used for subscribing to {@link Store} updates.
+ *
+ * @internal
+ */
+type SubscribeStrategy = (
+  store: Store,
+  id: string,
+  guard: MutableRefObject<Guard | undefined>,
+  callback: Unregister,
+) => Unregister;
+
+/**
+ * @internal
+ */
+type ReducerValue<T> = [Entry<T>, Store, string];
+/**
+ * @internal
+ */
+type Reducer<T> = (prev: ReducerValue<T>) => ReducerValue<T>;
 
 /**
  * Prefix of persistent states.
@@ -188,6 +235,10 @@ export function useChamp<T>(
  * id but with different types. This can cause unintentional mixing of data
  * of different types, leading to unpredictable behaviour and crashes.
  *
+ * @public
+ * @category Hook
+ * @typeParam T - The datatype of the stateful variable
+ *
  * @example
  * ```
  * const usePage = createPeristentState<PageName>("page");
@@ -224,6 +275,10 @@ export function createPersistentState<T = never>(
 /**
  * Creates a state which will be shared by all simultaneous consumers, contents
  * will be destroyed once all the consuming components have unmounted.
+ *
+ * @public
+ * @category Hook
+ * @typeParam T - The datatype of the stateful variable
  */
 export function createSharedState<T = never>(id: string): UseSharedState<T> {
   return (initialState) =>
@@ -234,21 +289,6 @@ export function createSharedState<T = never>(id: string): UseSharedState<T> {
       initialState,
     );
 }
-
-/**
- * Strategy used for subscribing to {@link Store} updates.
- *
- * @internal
- */
-type SubscribeStrategy = (
-  store: Store,
-  id: string,
-  guard: MutableRefObject<Guard | undefined>,
-  callback: Unregister,
-) => Unregister;
-
-type ReducerValue<T> = [Entry<T>, Store, string];
-type Reducer<T> = (prev: ReducerValue<T>) => ReducerValue<T>;
 
 /**
  * @internal
@@ -331,9 +371,6 @@ export function useInner<T>(
     synchronize();
   }
 
-  // Make sure we always pass the same functions, both to consumers to avoid
-  // re-redering whole trees, but also to useSyncExternalStore() since it will
-  // trigger extra logic and maybe re-render
   // TODO: Allow more thorough integration so the component can immediately suspend
   const update = useCallback(
     (update: Update<T>) => updateState(store, id, update),
@@ -414,16 +451,6 @@ export function useInner<T>(
   const value = unwrapEntry(entry.current);
 
   return [value, update];
-}
-
-/**
- * Guard preventing multiple destructors from running based on object identity
- * as well as the stored id.
- *
- * @internal
- */
-interface Guard {
-  id: string;
 }
 
 /**

@@ -1,20 +1,21 @@
 import {
   MutableRefObject,
-  useEffect,
   useCallback,
-  useRef,
+  useDebugValue,
+  useEffect,
   useReducer,
+  useRef,
 } from "react";
 import { Entry, createEntry, unwrapEntry } from "./entry";
 import {
   Store,
   Unregister,
+  dropEntry,
+  getEntry,
   listen,
   listenerCount,
-  getEntry,
-  setEntry,
   restoreEntryFromSnapshot,
-  dropEntry,
+  setEntry,
 } from "./store";
 import { useStore } from "./components/Provider";
 
@@ -446,6 +447,8 @@ export function useInner<T>(
   // all-old data to make sure it has complete control, and then starts an
   // incremental render in the background with the new data, which then
   // replaces the old tree once it finishes with a final flip back and forth.
+
+  useDebugValue(entry.current);
 
   // We can now unwrap since we have initialized all hooks
   const value = unwrapEntry(entry.current);

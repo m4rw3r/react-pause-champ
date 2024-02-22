@@ -534,7 +534,7 @@ function getOrInitState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
 function updateState<T>(store: Store, id: string, update: Update<T>): Entry<T> {
   let entry = getEntry(store, id) as Entry<T> | undefined;
 
-  if (!entry || entry.kind !== "value") {
+  if (entry?.kind !== "value") {
     throw new Error(
       `State update of '${id}' requires a value (was ${
         entry ? entry.kind : "empty"
@@ -589,10 +589,7 @@ function subscribePrivate(
 
       // This case is also triggered if we re-render with a new id to
       // guarantee the old id gets cleaned up.
-      if (
-        guard.current === nonce ||
-        (guard.current && guard.current.id !== id)
-      ) {
+      if (guard.current === nonce || guard.current?.id !== id) {
         dropEntry(store, id);
       }
     }, 0);

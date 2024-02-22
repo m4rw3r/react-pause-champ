@@ -224,7 +224,7 @@ export function useChamp<T>(
   // TODO: Can we reuse some logic here?
   useCheckEntry(store, id);
 
-  return useInner(store, id, subscribePrivate, initialState);
+  return useEntry(store, id, subscribePrivate, initialState);
 }
 
 /**
@@ -265,7 +265,7 @@ export function createPersistentState<T = never>(
   id: string,
 ): UsePersistentState<T> {
   return (initialState) =>
-    useInner(
+    useEntry(
       useStore("Use of persistent state hook"),
       PERSISTENT_PREFIX + id,
       subscribePersistent,
@@ -283,7 +283,7 @@ export function createPersistentState<T = never>(
  */
 export function createSharedState<T = never>(id: string): UseSharedState<T> {
   return (initialState) =>
-    useInner(
+    useEntry(
       useStore("Use of shared state hook"),
       SHARED_PREFIX + id,
       subscribeShared,
@@ -294,7 +294,7 @@ export function createSharedState<T = never>(id: string): UseSharedState<T> {
 /**
  * @internal
  */
-export function useInner<T>(
+export function useEntry<T>(
   store: Store,
   id: string,
   subscribeStrategy: SubscribeStrategy,
@@ -330,7 +330,9 @@ export function useInner<T>(
     unknown
   >(
     (prev) => {
-      const newEntry = initState(store, id, initialState);
+      // We might be in the process of swapping ids with a queued synchronize,
+      // ensure we reinit in that case
+      const newEntry = getOrInitState(store, id, initialState);
 
       // Do not update if our last rendered entry is already the new one,
       // React seems to sometimes still queue updates here for some reason
@@ -342,8 +344,9 @@ export function useInner<T>(
     },
     undefined,
     () => [
+      // We might be restoring from a server snapshot
       restoreEntryFromSnapshot(store, id, () =>
-        initState(store, id, initialState),
+        getOrInitState(store, id, initialState),
       ) as Entry<T>,
       store,
       id,
@@ -366,7 +369,7 @@ export function useInner<T>(
     // Initialize the new data already in its new slot in the Store, useEffect will
     // register the listener and potentially destroy the old value (depending on the
     // subscription strategy).
-    entry.current = initState(store, id, initialState);
+    entry.current = getOrInitState(store, id, initialState);
 
     // Notify react that we need to synchronize the reducer contents
     synchronize();
@@ -503,7 +506,7 @@ function useCheckEntry(store: Store, id: string): void {
  *
  * @internal
  */
-function initState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
+function getOrInitState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
   let entry = getEntry(store, id) as Entry<T> | undefined;
 
   if (!entry) {

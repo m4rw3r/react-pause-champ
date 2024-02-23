@@ -15,6 +15,8 @@ import { useStore } from "../internal/hooks/useStore";
  * @public
  * @category Hook
  * @typeParam T - The datatype of the stateful variable
+ * @param initialState - The initial state of the value
+ * @see {@link createSharedState}
  */
 export type UseSharedState<T> = (
   initialState: Init<T>,

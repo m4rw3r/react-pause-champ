@@ -1,6 +1,6 @@
 import type { MutableRefObject } from "react";
 import type { Entry } from "../entry";
-import type { Init, InitFn } from "../../useChamp";
+import type { Init, InitFn } from "../../types";
 import type { Store, Unregister } from "../store";
 
 import { useDebugValue, useEffect, useReducer, useRef } from "react";

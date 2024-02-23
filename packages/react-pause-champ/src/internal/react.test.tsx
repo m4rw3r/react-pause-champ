@@ -1,3 +1,7 @@
+/*
+ * @file Test to ensure the behaviour of useRef which we rely on.
+ */
+
 import {
   StrictMode,
   createElement,

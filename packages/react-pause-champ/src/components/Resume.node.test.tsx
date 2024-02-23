@@ -5,7 +5,7 @@
 import { createElement } from "react";
 import { Provider, Resume, createStore } from "..";
 import { createEntry } from "../internal/entry";
-import { renderToStream } from "../testutils.node";
+import { renderToStream } from "../internal/testutils.node";
 
 describe("<Resume/>", () => {
   it("throws without a <Provider/>", async () => {

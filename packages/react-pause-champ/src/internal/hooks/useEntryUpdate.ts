@@ -1,5 +1,5 @@
 import type { Store } from "../store";
-import type { Update, UpdateCallback, UpdateFn } from "../../useChamp";
+import type { Update, UpdateCallback, UpdateFn } from "../../types";
 import type { Entry } from "../entry";
 
 import { useCallback } from "react";

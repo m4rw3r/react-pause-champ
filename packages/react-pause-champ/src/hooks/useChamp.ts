@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type { Init, UpdateCallback } from "../useChamp";
+import type { Init, UpdateCallback } from "../types";
 import type { Store, Unregister } from "../internal/store";
 import type { Guard } from "../internal/hooks/useEntryValue";
 

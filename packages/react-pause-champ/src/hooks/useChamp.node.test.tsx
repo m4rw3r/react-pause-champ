@@ -3,8 +3,8 @@
  */
 
 import { Suspense, createElement } from "react";
-import { Provider, useChamp, createStore } from ".";
-import { renderToStream } from "./testutils.node";
+import { Provider, useChamp, createStore } from "../index";
+import { renderToStream } from "../internal/testutils.node";
 
 describe("useChamp()", () => {
   it("throws when no <Provider/> is used", async () => {

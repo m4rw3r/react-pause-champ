@@ -1,12 +1,6 @@
 export type { Entry } from "./internal/entry";
 export type { Snapshot, Store } from "./internal/store";
-export type {
-  Init,
-  InitFn,
-  Update,
-  UpdateCallback,
-  UpdateFn,
-} from "./useChamp";
+export type { Init, InitFn, Update, UpdateCallback, UpdateFn } from "./types";
 export type { UsePersistentState } from "./hooks/createPersistentState";
 export type { UseSharedState } from "./hooks/createSharedState";
 export type { ProviderProps } from "./components/Provider";

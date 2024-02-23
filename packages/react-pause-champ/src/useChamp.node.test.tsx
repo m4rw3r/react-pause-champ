@@ -3,15 +3,8 @@
  */
 
 import { Suspense, createElement } from "react";
-import { canUseDOM } from "./useChamp";
 import { Provider, useChamp, createStore } from ".";
 import { renderToStream } from "./testutils.node";
-
-describe("canUseDOM()", () => {
-  it("should return false in node", () => {
-    expect(canUseDOM()).toBe(false);
-  });
-});
 
 describe("useChamp()", () => {
   it("throws when no <Provider/> is used", async () => {

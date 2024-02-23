@@ -17,7 +17,6 @@ import {
   useChamp,
   createPersistentState,
 } from "./index";
-import { canUseDOM } from "./useChamp";
 import { PERSISTENT_PREFIX } from "./hooks/createPersistentState";
 import { createEntry } from "./internal/entry";
 import {
@@ -143,12 +142,6 @@ beforeEach(() => {
 afterEach(() => {
   console.error = oldConsoleError;
   console.warn = oldConsoleWarn;
-});
-
-describe("canUseDOM()", () => {
-  it("should return true in browser", () => {
-    expect(canUseDOM()).toBe(true);
-  });
 });
 
 describe("useChamp()", () => {

@@ -73,17 +73,3 @@ export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
  * @param update - The new value, or a function creating the new value
  */
 export type UpdateCallback<T> = (update: Update<T>) => void;
-
-/**
- * @internal
- */
-export function canUseDOM(): boolean {
-  return Boolean(
-    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-    typeof window !== "undefined" &&
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- null
-      window.document &&
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- Presence check
-      window.document.createElement,
-  );
-}

@@ -6,6 +6,7 @@ import {
   useReducer,
   useRef,
 } from "react";
+
 import { Entry, createEntry, unwrapEntry } from "./entry";
 import {
   Store,
@@ -49,6 +50,7 @@ export type Init<T> = T | Promise<T> | InitFn<T>;
  * @see {@link useChamp}
  */
 export type InitFn<T> = () => T | Promise<T>;
+
 /**
  * A new value, or a function creating a new value, for a stateful variable
  * from {@link useChamp}.
@@ -60,6 +62,7 @@ export type InitFn<T> = () => T | Promise<T>;
  * @see {@link UpdateCallback}
  */
 export type Update<T> = T | Promise<T> | UpdateFn<T>;
+
 /**
  * A function creating a new value for a stateful variable from
  * {@link useChamp}.
@@ -81,6 +84,7 @@ export type Update<T> = T | Promise<T> | UpdateFn<T>;
  * @see {@link UpdateCallback}
  */
 export type UpdateFn<T> = (oldValue: T) => T | Promise<T>;
+
 /**
  * Callback which can update a stateful variable created by {@link useChamp}.
  *

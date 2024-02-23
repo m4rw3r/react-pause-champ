@@ -22,6 +22,40 @@ export interface ResumeProps {
 }
 
 /**
+ * @internal
+ */
+export interface ResumeInnerProps {
+  identifier: string;
+  iter: EntryIterator;
+  createMap?: boolean;
+}
+
+/**
+ * @internal
+ */
+export interface ResumeNextProps {
+  identifier: string;
+  iter: EntryIterator;
+}
+
+/**
+ * @internal
+ */
+export interface ResumeScriptProps {
+  identifier: string;
+  items: Map<string, Entry<unknown>>;
+  createMap: boolean;
+}
+
+/**
+ * @internal
+ */
+export interface EntryIterator {
+  items: Map<string, Entry<unknown>>;
+  next: Entry<EntryIterator | undefined>;
+}
+
+/**
  * Server Side Component which streams the state data data present in the
  * wrapping {@link Provider}'s {@link Store}.
  *
@@ -75,40 +109,6 @@ export function Resume({
       createMap
     />
   );
-}
-
-/**
- * @internal
- */
-export interface ResumeInnerProps {
-  identifier: string;
-  iter: EntryIterator;
-  createMap?: boolean;
-}
-
-/**
- * @internal
- */
-export interface ResumeNextProps {
-  identifier: string;
-  iter: EntryIterator;
-}
-
-/**
- * @internal
- */
-export interface ResumeScriptProps {
-  identifier: string;
-  items: Map<string, Entry<unknown>>;
-  createMap: boolean;
-}
-
-/**
- * @internal
- */
-export interface EntryIterator {
-  items: Map<string, Entry<unknown>>;
-  next: Entry<EntryIterator | undefined>;
 }
 
 /**

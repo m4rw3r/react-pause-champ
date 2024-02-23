@@ -15,6 +15,27 @@ import { Entry } from "./entry";
 export type Snapshot = Map<string, Entry<string> | undefined>;
 
 /**
+ * A listener for state-data updates.
+ *
+ * @internal
+ */
+export type EntryCallback = () => unknown;
+
+/**
+ * Function used to unregister a listener.
+ *
+ * @internal
+ */
+export type Unregister = () => void;
+
+/**
+ * @internal
+ */
+export interface EntryMeta {
+  cid: object;
+}
+
+/**
  * A container for application state data used by {@link useChamp}.
  *
  * @public
@@ -93,27 +114,6 @@ export function fromSnapshot(snapshot: Snapshot | undefined): Store {
     snapshot,
     meta: new Map(),
   };
-}
-
-/**
- * A listener for state-data updates.
- *
- * @internal
- */
-export type EntryCallback = () => unknown;
-
-/**
- * Function used to unregister a listener.
- *
- * @internal
- */
-export type Unregister = () => void;
-
-/**
- * @internal
- */
-export interface EntryMeta {
-  cid: object;
 }
 
 /**

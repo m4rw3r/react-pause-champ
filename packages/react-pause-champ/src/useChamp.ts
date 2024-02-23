@@ -228,7 +228,10 @@ export function useChamp<T>(
   // TODO: Can we reuse some logic here?
   useCheckEntry(store, id);
 
-  return useEntry(store, id, subscribePrivate, initialState);
+  // useEntryValue can fail, initialize update first
+  const update = useEntryUpdate<T>(store, id);
+
+  return [useEntryValue(store, id, subscribePrivate, initialState), update];
 }
 
 /**
@@ -268,13 +271,21 @@ export function useChamp<T>(
 export function createPersistentState<T = never>(
   id: string,
 ): UsePersistentState<T> {
-  return (initialState) =>
-    useEntry(
-      useStore("Use of persistent state hook"),
-      PERSISTENT_PREFIX + id,
-      subscribePersistent,
-      initialState,
-    );
+  return (initialState) => {
+    const store = useStore("Use of persistent state hook");
+    // useEntryValue can fail, initialize update first
+    const update = useEntryUpdate<T>(store, id);
+
+    return [
+      useEntryValue(
+        store,
+        PERSISTENT_PREFIX + id,
+        subscribePersistent,
+        initialState,
+      ),
+      update,
+    ];
+  };
 }
 
 /**
@@ -286,24 +297,41 @@ export function createPersistentState<T = never>(
  * @typeParam T - The datatype of the stateful variable
  */
 export function createSharedState<T = never>(id: string): UseSharedState<T> {
-  return (initialState) =>
-    useEntry(
-      useStore("Use of shared state hook"),
-      SHARED_PREFIX + id,
-      subscribeShared,
-      initialState,
-    );
+  return (initialState) => {
+    const store = useStore("Use of shared state hook");
+    // useEntryValue can fail, initialize update first
+    const update = useEntryUpdate<T>(store, id);
+
+    return [
+      useEntryValue(store, SHARED_PREFIX + id, subscribeShared, initialState),
+      update,
+    ];
+  };
 }
 
 /**
+ * Creates a callback to update the given ID in the given store.
+ *
  * @internal
  */
-export function useEntry<T>(
+export function useEntryUpdate<T>(store: Store, id: string): UpdateCallback<T> {
+  // TODO: Allow more thorough integration so the component can immediately suspend
+  return useCallback((update) => updateState(store, id, update), [store, id]);
+}
+
+/**
+ * Fetches or initializes an entry value.
+ *
+ * NOTE: Can throw, so must be run after other hooks.
+ *
+ * @internal
+ */
+export function useEntryValue<T>(
   store: Store,
   id: string,
   subscribeStrategy: SubscribeStrategy,
   initialState: Init<T>,
-): [T, UpdateCallback<T>] {
+): T {
   // Guard value for cleanup callback, useRef() will remain the same even in
   // <React.StrictMode/>, which means we can use this to ensure we only clean
   // up once the component really unmounts.
@@ -379,12 +407,6 @@ export function useEntry<T>(
     synchronize();
   }
 
-  // TODO: Allow more thorough integration so the component can immediately suspend
-  const update = useCallback(
-    (update: Update<T>) => updateState(store, id, update),
-    [store, id],
-  );
-
   // This subscribe/unsubscribe works fine no matter where it is in the
   // component or when it is run, since react will try to re-render the
   // component as soon as any promise is resolved. So we do not need to
@@ -458,9 +480,7 @@ export function useEntry<T>(
   useDebugValue(entry.current);
 
   // We can now unwrap since we have initialized all hooks
-  const value = unwrapEntry(entry.current);
-
-  return [value, update];
+  return unwrapEntry(entry.current);
 }
 
 /**

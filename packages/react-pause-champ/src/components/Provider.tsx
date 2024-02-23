@@ -1,6 +1,8 @@
-import { ReactNode, createContext, createElement, useContext } from "react";
+import type { ReactNode } from "react";
+import type { Store } from "../internal/store";
 
-import { Store } from "../store";
+import { createElement } from "react";
+import { Context } from "../internal/hooks/useStore";
 
 /**
  * Properties for creating a {@link Provider | `<Provider/>`} component.
@@ -34,22 +36,4 @@ export interface ProviderProps {
  */
 export function Provider({ store, children }: ProviderProps): JSX.Element {
   return <Context.Provider value={store}>{children}</Context.Provider>;
-}
-
-/**
- * @internal
- */
-export const Context = createContext<Store | null>(null);
-
-/**
- * @internal
- */
-export function useStore(componentName: string): Store {
-  const store = useContext(Context);
-
-  if (!store) {
-    throw new Error(`${componentName} must be inside a <Provider/>.`);
-  }
-
-  return store;
 }

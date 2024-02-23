@@ -4,7 +4,7 @@
 
 import { createElement } from "react";
 import { Provider, Resume, createStore } from "..";
-import { createEntry } from "../entry";
+import { createEntry } from "../internal/entry";
 import { renderToStream } from "../testutils.node";
 
 describe("<Resume/>", () => {

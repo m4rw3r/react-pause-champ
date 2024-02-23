@@ -1,8 +1,9 @@
-import { Fragment, Suspense, createElement } from "react";
+import type { Entry } from "../internal/entry";
+import type { Store } from "../internal/store";
 
-import { useStore } from "./Provider";
-import { Entry, createEntry, unwrapEntry } from "../entry";
-import { Store } from "../store";
+import { Fragment, Suspense, createElement } from "react";
+import { createEntry, unwrapEntry } from "../internal/entry";
+import { useStore } from "../internal/hooks/useStore";
 
 /**
  * Properties for creating a {@link Resume | `<Resume />`} component.

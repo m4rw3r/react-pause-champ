@@ -17,9 +17,15 @@ import {
   useChamp,
   createPersistentState,
 } from "./index";
-import { PERSISTENT_PREFIX, canUseDOM } from "./useChamp";
-import { createEntry } from "./entry";
-import { getEntry, getSnapshot, listenerCount, setEntry } from "./store";
+import { canUseDOM } from "./useChamp";
+import { PERSISTENT_PREFIX } from "./hooks/createPersistentState";
+import { createEntry } from "./internal/entry";
+import {
+  getEntry,
+  getSnapshot,
+  listenerCount,
+  setEntry,
+} from "./internal/store";
 
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test

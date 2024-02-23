@@ -37,11 +37,18 @@
   "homepage": "https://github.com/m4rw3r/react-pause-champ",
   "files": [
     "dist/*",
+    "internal/*",
     "README.md"
   ],
   "exports": {
-    ".": "dist/index.js",
-    "./internal": "dist/internal/index.js"
+    ".": {
+      "types": "dist/index.d.ts",
+      "import": "dist/index.js"
+    },
+    "./internal": {
+      "types": "dist/internal/index.d.ts",
+      "import": "dist/internal/index.js"
+    }
   },
   "engine": {
     "node": " >=14.13.1 || >=16.0.0",

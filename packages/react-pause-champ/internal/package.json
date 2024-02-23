@@ -1,0 +1,8 @@
+{
+  "name": "@m4rw3r/react-pause-champ/internal",
+  "type": "module",
+  "main": "../dist/internal/index.js",
+  "module": "../dist/internal/index.js",
+  "types": "../dist/internal/index.d.ts",
+  "sideEffects": false
+}

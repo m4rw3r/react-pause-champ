@@ -11,6 +11,7 @@
     "declaration": false,
     "declarationMap": false,
     "declarationDir": null,
-    "removeComments": true
+    "removeComments": true,
+    "stripInternal": true
   }
 }

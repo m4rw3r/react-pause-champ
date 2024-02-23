@@ -53,7 +53,7 @@ export function createSharedState<T = never>(id: string): UseSharedState<T> {
 /**
  * @internal
  */
-function subscribeShared(
+export function subscribeShared(
   store: Store,
   id: string,
   _guard: MutableRefObject<Guard | undefined>,

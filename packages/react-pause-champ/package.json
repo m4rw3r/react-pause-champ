@@ -37,6 +37,10 @@
   "files": [
     "dist/*"
   ],
+  "exports": {
+    ".": "dist/index.js",
+    "./internal": "dist/internal/index.js"
+  },
   "engine": {
     "node": " >=14.13.1 || >=16.0.0",
     "pnpm": ">=3"

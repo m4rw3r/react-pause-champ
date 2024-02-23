@@ -126,7 +126,7 @@ function useCheckEntry(store: Store, id: string): void {
  * @internal
  */
 // TODO: Refactor and cleanup
-function subscribePrivate(
+export function subscribePrivate(
   store: Store,
   id: string,
   guard: MutableRefObject<Guard | undefined>,

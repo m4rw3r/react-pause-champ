@@ -22,7 +22,7 @@ export interface Guard {
  *
  * @internal
  */
-type SubscribeStrategy = (
+export type SubscribeStrategy = (
   store: Store,
   id: string,
   guard: MutableRefObject<Guard | undefined>,
@@ -208,7 +208,11 @@ export function useEntryValue<T>(
  *
  * @internal
  */
-function getOrInitState<T>(store: Store, id: string, init: Init<T>): Entry<T> {
+export function getOrInitState<T>(
+  store: Store,
+  id: string,
+  init: Init<T>,
+): Entry<T> {
   let entry = getEntry(store, id) as Entry<T> | undefined;
 
   if (!entry) {

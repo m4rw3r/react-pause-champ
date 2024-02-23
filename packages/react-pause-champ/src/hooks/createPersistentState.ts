@@ -85,7 +85,7 @@ export function createPersistentState<T = never>(
 /**
  * @internal
  */
-function subscribePersistent(
+export function subscribePersistent(
   _store: Store,
   _id: string,
   _guard: MutableRefObject<Guard | undefined>,

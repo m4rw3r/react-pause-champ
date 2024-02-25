@@ -1,6 +1,6 @@
 {
   "name": "@m4rw3r/react-pause-champ",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Isomorphic React hook providing async-aware stateful variables to components, with Suspense and Server-Side-Rendering support",
   "type": "module",
   "main": "dist/index.js",

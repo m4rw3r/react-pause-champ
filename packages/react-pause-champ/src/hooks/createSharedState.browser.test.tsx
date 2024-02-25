@@ -1,13 +1,9 @@
 import { createElement } from "react";
 import { fireEvent, getByText, render } from "@testing-library/react";
 
-import {
-  Provider,
-  createStore,
-  useChamp,
-  createPersistentState,
-} from "../index";
-import { PERSISTENT_PREFIX } from "./createPersistentState";
+import { Provider, createStore, useChamp, createSharedState } from "../index";
+import { listenerCount } from "../internal/store";
+import { SHARED_PREFIX } from "./createSharedState";
 
 const oldConsoleError = console.error;
 const oldConsoleWarn = console.warn;
@@ -25,13 +21,13 @@ afterEach(() => {
   console.warn = oldConsoleWarn;
 });
 
-describe("createPersistentState", () => {
-  it("created persistent state does not share data with a normal state with the same name", () => {
+describe("createSharedState", () => {
+  it("created shared state does not share data with a normal state with the same name", () => {
     const consoleError = jest.fn();
     // Silence errors
     console.error = consoleError;
 
-    const usePersistent = createPersistentState<{ name: string }>("test");
+    const useShared = createSharedState<{ name: string }>("test");
     const obj1 = { name: "obj1" };
     const obj2 = { name: "obj2" };
     const init = jest.fn(() => obj1);
@@ -45,7 +41,7 @@ describe("createPersistentState", () => {
       return <p>{data.name}</p>;
     };
     const MyOtherComponent = (): JSX.Element => {
-      const [data] = usePersistent(init2);
+      const [data] = useShared(init2);
 
       renders.push({ name: "MyOtherComponent", data });
 
@@ -58,7 +54,6 @@ describe("createPersistentState", () => {
         <MyOtherComponent />
       </Provider>,
     );
-    jest.runAllTimers();
 
     expect(consoleError.mock.calls).toHaveLength(0);
     expect(container.innerHTML).toEqual("<p>obj1</p><p>obj2</p>");
@@ -78,7 +73,7 @@ describe("createPersistentState", () => {
           },
         ],
         [
-          PERSISTENT_PREFIX + "test",
+          SHARED_PREFIX + "test",
           {
             kind: "value",
             value: obj2,
@@ -89,20 +84,20 @@ describe("createPersistentState", () => {
   });
 
   it("shares state between multiple components and updates in all", () => {
-    const usePersistent = createPersistentState<{ name: string }>("test");
+    const useShared = createSharedState<{ name: string }>("test");
     const sharedObj = { name: "shared-obj" };
     const newObj = { name: "new-obj" };
     const init = jest.fn(() => sharedObj);
     const renders: { name: string; data: { name: string } }[] = [];
     const MyComponent = (): JSX.Element => {
-      const [data] = usePersistent(init);
+      const [data] = useShared(init);
 
       renders.push({ name: "MyComponent", data });
 
       return <p>{data.name}</p>;
     };
     const MyOtherComponent = (): JSX.Element => {
-      const [data, update] = usePersistent(init);
+      const [data, update] = useShared(init);
 
       renders.push({ name: "MyOtherComponent", data });
 
@@ -119,7 +114,6 @@ describe("createPersistentState", () => {
         <MyOtherComponent />
       </Provider>,
     );
-    jest.runAllTimers();
 
     expect(container.innerHTML).toEqual(
       "<p>shared-obj</p><p><button>Update</button>shared-obj</p>",
@@ -133,7 +127,7 @@ describe("createPersistentState", () => {
     expect(store.data).toEqual(
       new Map([
         [
-          PERSISTENT_PREFIX + "test",
+          SHARED_PREFIX + "test",
           {
             kind: "value",
             value: sharedObj,
@@ -158,7 +152,7 @@ describe("createPersistentState", () => {
     expect(store.data).toEqual(
       new Map([
         [
-          PERSISTENT_PREFIX + "test",
+          SHARED_PREFIX + "test",
           {
             kind: "value",
             value: newObj,
@@ -166,5 +160,119 @@ describe("createPersistentState", () => {
         ],
       ]),
     );
+  });
+
+  it("removes the state data once all instances consuming it has unmounted", () => {
+    const useShared = createSharedState<{ name: string }>("test");
+    const sharedObj = { name: "shared-obj" };
+    const init = jest.fn(() => sharedObj);
+    const MyComponent = (): JSX.Element => {
+      const [data] = useShared(init);
+
+      return <p>{data.name}</p>;
+    };
+
+    const { container, rerender } = render(
+      <Provider store={store}>
+        <MyComponent />
+        <MyComponent />
+        <MyComponent />
+      </Provider>,
+    );
+
+    expect(container.innerHTML).toEqual(
+      "<p>shared-obj</p><p>shared-obj</p><p>shared-obj</p>",
+    );
+    expect(store.data).toEqual(
+      new Map([
+        [
+          SHARED_PREFIX + "test",
+          {
+            kind: "value",
+            value: sharedObj,
+          },
+        ],
+      ]),
+    );
+    expect(listenerCount(store, SHARED_PREFIX + "test")).toEqual(3);
+
+    rerender(
+      <Provider store={store}>
+        <MyComponent />
+        <MyComponent />
+      </Provider>,
+    );
+
+    expect(container.innerHTML).toEqual("<p>shared-obj</p><p>shared-obj</p>");
+    expect(store.data).toEqual(
+      new Map([
+        [
+          SHARED_PREFIX + "test",
+          {
+            kind: "value",
+            value: sharedObj,
+          },
+        ],
+      ]),
+    );
+    expect(listenerCount(store, SHARED_PREFIX + "test")).toEqual(2);
+
+    rerender(
+      <Provider store={store}>
+        <MyComponent />
+      </Provider>,
+    );
+
+    expect(container.innerHTML).toEqual("<p>shared-obj</p>");
+    expect(store.data).toEqual(
+      new Map([
+        [
+          SHARED_PREFIX + "test",
+          {
+            kind: "value",
+            value: sharedObj,
+          },
+        ],
+      ]),
+    );
+    expect(listenerCount(store, SHARED_PREFIX + "test")).toEqual(1);
+
+    jest.runAllTimers();
+
+    expect(container.innerHTML).toEqual("<p>shared-obj</p>");
+    expect(store.data).toEqual(
+      new Map([
+        [
+          SHARED_PREFIX + "test",
+          {
+            kind: "value",
+            value: sharedObj,
+          },
+        ],
+      ]),
+    );
+    expect(listenerCount(store, SHARED_PREFIX + "test")).toEqual(1);
+
+    rerender(<Provider store={store}></Provider>);
+
+    expect(container.innerHTML).toEqual("");
+    // The delete is deferred so we still have the data
+    expect(store.data).toEqual(
+      new Map([
+        [
+          SHARED_PREFIX + "test",
+          {
+            kind: "value",
+            value: sharedObj,
+          },
+        ],
+      ]),
+    );
+    expect(listenerCount(store, SHARED_PREFIX + "test")).toEqual(0);
+
+    jest.runAllTimers();
+
+    // And now it is gone
+    expect(store.data).toEqual(new Map([]));
   });
 });

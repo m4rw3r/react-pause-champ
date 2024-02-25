@@ -65,18 +65,15 @@ export const PERSISTENT_PREFIX = "P$";
 export function createPersistentState<T = never>(
   id: string,
 ): UsePersistentState<T> {
+  id = PERSISTENT_PREFIX + id;
+
   return (initialState) => {
     const store = useStore("Use of persistent state hook");
     // useEntryValue can fail, initialize update first
     const update = useEntryUpdate<T>(store, id);
 
     return [
-      useEntryValue(
-        store,
-        PERSISTENT_PREFIX + id,
-        subscribePersistent,
-        initialState,
-      ),
+      useEntryValue(store, id, subscribePersistent, initialState),
       update,
     ];
   };

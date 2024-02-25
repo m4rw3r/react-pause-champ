@@ -38,15 +38,14 @@ export const SHARED_PREFIX = "P$";
  * @typeParam T - The datatype of the stateful variable
  */
 export function createSharedState<T = never>(id: string): UseSharedState<T> {
+  id = SHARED_PREFIX + id;
+
   return (initialState) => {
     const store = useStore("Use of shared state hook");
     // useEntryValue can fail, initialize update first
     const update = useEntryUpdate<T>(store, id);
 
-    return [
-      useEntryValue(store, SHARED_PREFIX + id, subscribeShared, initialState),
-      update,
-    ];
+    return [useEntryValue(store, id, subscribeShared, initialState), update];
   };
 }
 

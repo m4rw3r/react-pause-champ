@@ -21,6 +21,7 @@ module.exports = {
     // We are throwing promises and other things, makes no sense to pretend
     // Error is the only thrown thing.
     "@typescript-eslint/prefer-promise-reject-errors": "off",
+    "@typescript-eslint/only-throw-error": "off",
     "react/react-in-jsx-scope": "off",
   },
   settings: {

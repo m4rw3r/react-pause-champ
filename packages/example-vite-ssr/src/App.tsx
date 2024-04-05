@@ -102,7 +102,7 @@ export function App(): JSX.Element {
       </button>
       <Suspense fallback={<Loader />}>
         <p>The test</p>
-        <Counter id={"counter" + n} startTransition={startTransition} />
+        <Counter id={`counter-{n}`} startTransition={startTransition} />
       </Suspense>
     </div>
   );

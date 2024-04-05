@@ -100,7 +100,9 @@ describe("useChamp()", () => {
     // We have to catch this because otherwise Jest/Node will think we do not
     // yet have any installed handler since the shell has not yet started rendering
     const catchFn = jest.fn();
-    waiting.catch(catchFn);
+    waiting.catch((err: unknown): void => {
+      catchFn(err);
+    });
 
     const MyComponent = () => {
       const [data] = useChamp("test", () => waiting);

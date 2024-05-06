@@ -31,7 +31,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
-    "rollup": "^4.14.0",
+    "rollup": "^4.17.2",
     "rollup-plugin-dts": "^6.1.0",
     "ts-add-js-extension": "^1.6.4",
     "ts-jest": "^29.1.2",

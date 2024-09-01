@@ -1,5 +1,6 @@
 import type { Entry } from "../internal/entry";
 import type { Store } from "../internal/store";
+import type { JSX } from "react";
 
 import { Fragment, Suspense, createElement } from "react";
 import { createEntry, unwrapEntry } from "../internal/entry";

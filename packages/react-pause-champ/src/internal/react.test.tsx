@@ -2,6 +2,8 @@
  * @file Test to ensure the behaviour of useRef which we rely on.
  */
 
+import type { JSX } from "react";
+
 import {
   StrictMode,
   createElement,

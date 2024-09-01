@@ -1,3 +1,5 @@
+import type { JSX } from "react";
+
 import { createElement } from "react";
 import { Provider, Resume, createStore } from "@m4rw3r/react-pause-champ";
 import { App } from "./App";

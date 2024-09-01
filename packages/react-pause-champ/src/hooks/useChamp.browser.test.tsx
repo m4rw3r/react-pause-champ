@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { ComponentType, ReactNode } from "react";
 
 import {

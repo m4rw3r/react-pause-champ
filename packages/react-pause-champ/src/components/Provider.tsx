@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import type { Store } from "../internal/store";
 
 import { createElement } from "react";

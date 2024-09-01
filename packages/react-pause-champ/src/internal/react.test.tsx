@@ -10,6 +10,7 @@ import {
   createElement,
   useEffect,
   useRef,
+  version as reactVersion,
 } from "react";
 import { render } from "@testing-library/react";
 
@@ -69,12 +70,27 @@ describe("useRef({})", () => {
     );
 
     expect(events).toHaveLength(2);
-    expect(events).toEqual([
-      { event: "render", ref: { n: 1 } },
-      { event: "render", ref: { n: 2 } },
-    ]);
-    // Exception to the rule
-    expect(events[0]!.ref).not.toBe(events[1]!.ref);
+    // Difference here depending on React 18 or 19
+    // In 19 useRef/useCallback/useMemo does NOT change inside a component in
+    // StrictMode rendering.
+    if (reactVersion.startsWith("18.")) {
+      expect(events).toEqual([
+        { event: "render", ref: { n: 1 } },
+        { event: "render", ref: { n: 2 } },
+      ]);
+      // Exception to the rule
+      expect(events[0]!.ref).not.toBe(events[1]!.ref);
+    } else if (reactVersion.startsWith("19.")) {
+      expect(events).toEqual([
+        { event: "render", ref: { n: 1 } },
+        { event: "render", ref: { n: 1 } },
+      ]);
+      // Now these are the same
+      expect(events[0]!.ref).toBe(events[1]!.ref);
+    } else {
+      throw new Error(`Unknown React version ${reactVersion}`);
+    }
+
     expect(container.innerHTML).toEqual("<p>MyComponent</p>");
 
     rerender(
@@ -84,12 +100,26 @@ describe("useRef({})", () => {
     );
 
     expect(events).toHaveLength(4);
-    expect(events).toEqual([
-      { event: "render", ref: { n: 1 } },
-      { event: "render", ref: { n: 2 } },
-      { event: "render", ref: { n: 2 } },
-      { event: "render", ref: { n: 2 } },
-    ]);
+
+    // Difference here depending on React 18 or 19
+    if (reactVersion.startsWith("18.")) {
+      expect(events).toEqual([
+        { event: "render", ref: { n: 1 } },
+        { event: "render", ref: { n: 2 } },
+        { event: "render", ref: { n: 2 } },
+        { event: "render", ref: { n: 2 } },
+      ]);
+    } else if (reactVersion.startsWith("19.")) {
+      expect(events).toEqual([
+        { event: "render", ref: { n: 1 } },
+        { event: "render", ref: { n: 1 } },
+        { event: "render", ref: { n: 1 } },
+        { event: "render", ref: { n: 1 } },
+      ]);
+    } else {
+      throw new Error(`Unknown React version ${reactVersion}`);
+    }
+
     expect(events[1]!.ref).toBe(events[2]!.ref);
     expect(events[2]!.ref).toBe(events[3]!.ref);
   });

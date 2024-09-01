@@ -191,11 +191,12 @@ export function createStateDataIterator(
   emitted?: Set<string> | undefined,
   suspended?: Set<Promise<unknown>> | undefined,
 ): EntryIterator {
+  const items = new Map<string, Entry<unknown>>();
+  const promises = [];
+
   // Clone the sets to avoid having re-renders skip parts they previously had
   emitted = emitted ? new Set(emitted) : new Set();
   suspended = suspended ? new Set(suspended) : new Set();
-  const items = new Map();
-  const promises = [];
 
   for (const [k, v] of store.data) {
     if (v.kind === "suspended") {

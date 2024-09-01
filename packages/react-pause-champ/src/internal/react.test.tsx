@@ -124,7 +124,6 @@ describe("useRef({})", () => {
       }, [ref]);
 
       if (typeof t === "object" && typeof t.then === "function") {
-        // eslint-disable-next-line @typescript-eslint/no-throw-literal
         throw t;
       }
 

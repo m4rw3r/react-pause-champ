@@ -42,7 +42,7 @@ export function createEntry<T>(value: Promise<T> | T): Entry<T> {
 
         return value;
       },
-      (error) => {
+      (error: unknown) => {
         suspendable.kind = "error";
         suspendable.value = error;
 

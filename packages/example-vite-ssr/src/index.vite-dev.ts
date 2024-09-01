@@ -30,7 +30,8 @@ function createViteDevHtmlTransform(path: string) {
         // initialize due to missing preamble, despite being correct
         // The path is used for some relative URLs/imports
         viteDevServer.transformIndexHtml(path, chunk.toString()).then(
-          (data) => callback(null, data),
+          (data: string) => callback(null, data),
+          // eslint-disable-next-line @typescript-eslint/use-unknown-in-catch-callback-variable
           (error: Error) => callback(error, null),
         );
       } else {

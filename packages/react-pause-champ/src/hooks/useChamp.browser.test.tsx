@@ -5,11 +5,12 @@ import {
   Fragment,
   StrictMode,
   Suspense,
+  act,
   createElement,
   useState,
   useTransition,
 } from "react";
-import { act, fireEvent, getByText, render } from "@testing-library/react";
+import { fireEvent, getByText, render } from "@testing-library/react";
 
 import {
   Provider,

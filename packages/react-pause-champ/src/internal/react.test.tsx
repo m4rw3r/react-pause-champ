@@ -6,13 +6,14 @@ import type { JSX } from "react";
 
 import {
   StrictMode,
+  act,
   createElement,
   useEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
 } from "react";
-import { render, act } from "@testing-library/react";
+import { render } from "@testing-library/react";
 
 interface ComponentRef {
   n: number;

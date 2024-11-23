@@ -5,7 +5,10 @@
 import { createElement } from "react";
 import { Provider, Resume, createStore } from "..";
 import { createEntry } from "../internal/entry";
-import { renderToStream } from "../internal/testutils.node";
+import {
+  REACT_STREAMING_SCRIPT,
+  renderToStream,
+} from "../internal/testutils.node";
 
 describe("<Resume/>", () => {
   it("throws without a <Provider/>", async () => {
@@ -98,7 +101,7 @@ describe("<Resume/>", () => {
     resolveWaiting!("foobar");
 
     await expect(stream).resolves.toEqual(
-      `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"value","value":"foobar"})</script><!--$--><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`,
+      `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"value","value":"foobar"})</script><!--$--><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
     );
 
     expect(stream.errors).toEqual([]);
@@ -127,7 +130,7 @@ describe("<Resume/>", () => {
     rejectWaiting!(new Error("asdf"));
 
     await expect(stream).resolves.toEqual(
-      `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"error","value":{}})</script><!--$--><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`,
+      `<script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"error","value":{}})</script><!--$--><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
     );
 
     // The error is not thrown in a component since we are actually not rendering the component with the error
@@ -167,7 +170,7 @@ describe("<Resume/>", () => {
 
     // Grab a chunk, we have more
     await expect(stream.chunk()).resolves.toEqual(
-      `<div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:1"></template><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`,
+      `<div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:1"></template><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
     );
 
     expect(stream.errors).toEqual([]);
@@ -181,7 +184,7 @@ describe("<Resume/>", () => {
       `<div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`,
     );
     await expect(stream).resolves.toEqual(
-      `<script async="">window.snapshot=new Map();window.snapshot.set("wait1",{"kind":"server-suspended","value":undefined});window.snapshot.set("wait2",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:1"></template><!--/$--></div><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script><div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`,
+      `<script async="">window.snapshot=new Map();window.snapshot.set("wait1",{"kind":"server-suspended","value":undefined});window.snapshot.set("wait2",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--><div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:1"></template><!--/$--></div>${REACT_STREAMING_SCRIPT}<div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`,
     );
 
     expect(stream.errors).toEqual([]);

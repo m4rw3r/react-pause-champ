@@ -1,7 +1,19 @@
 import type { ReactNode } from "react";
 
 import { Writable } from "node:stream";
+import { version as reactVersion } from "react";
 import { renderToPipeableStream } from "react-dom/server";
+
+let reactStreamingScript;
+/* c8 ignore start */
+if (reactVersion.startsWith("19.")) {
+  reactStreamingScript = `<script>$RC=function(b,c,e){c=document.getElementById(c);c.parentNode.removeChild(c);var a=document.getElementById(b);if(a){b=a.previousSibling;if(e)b.data="$!",a.setAttribute("data-dgst",e);else{e=b.parentNode;a=b.nextSibling;var f=0;do{if(a&&8===a.nodeType){var d=a.data;if("/$"===d)if(0===f)break;else f--;else"$"!==d&&"$?"!==d&&"$!"!==d||f++}d=a.nextSibling;e.removeChild(a);a=d}while(a);for(;c.firstChild;)e.insertBefore(c.firstChild,a);b.data="$"}b._reactRetry&&b._reactRetry()}};$RC("B:0","S:0")</script>`;
+} else if (reactVersion.startsWith("18.")) {
+  reactStreamingScript = `<script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}};$RC("B:0","S:0")</script>`;
+} else {
+  throw new Error(`Unknown react version ${reactVersion}`);
+}
+/* c8 ignore stop */
 
 export type Callback = () => void;
 
@@ -10,6 +22,8 @@ export interface StreamParts extends Promise<string> {
   buffer: string[];
   errors: unknown[];
 }
+
+export const REACT_STREAMING_SCRIPT = reactStreamingScript;
 
 /**
  * Renders a react component to a promise which resolves when the promise

@@ -15,8 +15,10 @@
     "build:README": "cp ../../README.md README.md",
     "check": "tsc --noEmit",
     "clean": "rm -rf coverage dist README.md",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "pnpm run \"/^test:.*/\"",
+    "test:react18": "REACT_VERSION=18 jest",
+    "test:react19": "REACT_VERSION=19 jest",
+    "watch": "jest --watch"
   },
   "keywords": [
     "async",
@@ -64,6 +66,10 @@
     "@types/react-dom": "^18.3.0",
     "jest-environment-jsdom": "^29.7.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react18": "npm:react@^18.3.1",
+    "react18-dom": "npm:react-dom@^18.3.1",
+    "react19": "npm:react@^19.0.0-rc.1",
+    "react19-dom": "npm:react-dom@^19.0.0-rc.1"
   }
 }

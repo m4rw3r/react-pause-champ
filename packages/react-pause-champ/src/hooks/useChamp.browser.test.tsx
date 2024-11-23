@@ -468,23 +468,23 @@ describe("useChamp() when hydrating", () => {
       // React19: A different number of errors are printed now, and errors are
       // thrown using window.dispatchEvent
       expect(consoleError.mock.calls).toHaveLength(1);
-      expect(consoleError.mock.calls[0][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[0][0])).toContain(
         "Hydration failed because the server rendered HTML didn't match the client.",
       );
       expect(onError.mock.calls).toHaveLength(1);
     } else if (reactVersion.startsWith("18.")) {
       // React18: No throw in render or window.dispatchEvent
       expect(consoleError.mock.calls).toHaveLength(4);
-      expect(consoleError.mock.calls[0][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[0][0])).toContain(
         "Warning: Text content did not match.",
       );
-      expect(consoleError.mock.calls[1][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[1][0])).toContain(
         "Warning: An error occurred during hydration.",
       );
-      expect(consoleError.mock.calls[2][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[2][0])).toContain(
         "Error: Text content does not match server-rendered HTML.",
       );
-      expect(consoleError.mock.calls[3][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[3][0])).toContain(
         "Error: There was an error while hydrating.",
       );
       expect(onError.mock.calls).toHaveLength(0);
@@ -543,20 +543,20 @@ describe("useChamp() when hydrating", () => {
       // React19: A different number of errors are printed now, and errors are
       // thrown using window.dispatchEvent
       expect(consoleError.mock.calls).toHaveLength(1);
-      expect(consoleError.mock.calls[0][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[0][0])).toContain(
         "Hydration failed because the server rendered HTML didn't match the client.",
       );
       expect(onError.mock.calls).toHaveLength(1);
     } else if (reactVersion.startsWith("18.")) {
       // React18: No throw in render or window.dispatchEvent
       expect(consoleError.mock.calls).toHaveLength(3);
-      expect(consoleError.mock.calls[0][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[0][0])).toContain(
         "Warning: An error occurred during hydration.",
       );
-      expect(consoleError.mock.calls[1][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[1][0])).toContain(
         "Error: Text content does not match server-rendered HTML.",
       );
-      expect(consoleError.mock.calls[2][0].toString()).toContain(
+      expect(String(consoleError.mock.calls[2][0])).toContain(
         "Error: There was an error while hydrating.",
       );
       expect(onError.mock.calls).toHaveLength(0);

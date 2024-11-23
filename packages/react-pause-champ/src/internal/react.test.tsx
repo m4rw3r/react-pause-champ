@@ -156,7 +156,7 @@ describe("useRef({})", () => {
         throw t;
       }
 
-      return <p>{String(t)}</p>;
+      return <p>{t as string}</p>;
     };
 
     const { rerender } = render(<MyComponent />);

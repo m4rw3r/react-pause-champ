@@ -15,7 +15,7 @@
     "build:README": "cp ../../README.md README.md",
     "check": "tsc --noEmit",
     "clean": "rm -rf coverage dist README.md",
-    "test": "pnpm run \"/^test:.*/\"",
+    "test": "pnpm run --sequential \"/^test:.*/\"",
     "test:react18": "REACT_VERSION=18 jest",
     "test:react19": "REACT_VERSION=19 jest",
     "watch": "jest --watch"

@@ -11,15 +11,15 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build": "pnpm -r build",
-    "check": "pnpm -r check",
+    "build": "pnpm -r --sequential build",
+    "check": "pnpm -r --sequential check",
     "lint": "eslint .",
-    "clean": "pnpm -r clean",
+    "clean": "pnpm -r --sequential clean",
     "dist": "pnpm run clean && pnpm run check && pnpm run test && pnpm run format:check && pnpm run build && pnpm run lint",
     "format": "prettier -w .",
     "format:check": "prettier -c .",
     "prepack": "pnpm run dist",
-    "test": "pnpm -r test"
+    "test": "pnpm -r --sequential test"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

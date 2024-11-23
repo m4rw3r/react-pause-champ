@@ -293,18 +293,19 @@ describe("Component", () => {
     let resolve: (value: string) => void;
     const value: {
       value: Promise<string> | string;
-      resolve: (resolved: string) => void;
+      resolve: (resolved: string) => Promise<string>;
     } = {
       value: new Promise((resolveFn) => {
         resolve = resolveFn;
       }),
       resolve: (resolved: string) => {
-        let p = value.value;
+        const p = value.value;
 
         if (typeof p === "object" && typeof p.then === "function") {
           value.value = resolved;
 
           resolve(resolved);
+
           return p;
         } else {
           throw new Error("Promise object has already been resoled");
@@ -314,8 +315,11 @@ describe("Component", () => {
 
     return value;
   };
-  const makeComponent =
-    (name: string, value: { value: Promise<string> | string }) => () => {
+  const makeComponent = (
+    name: string,
+    value: { value: Promise<string> | string },
+  ) =>
+    function ThrowingComponent() {
       events.push({ event: "render", name });
 
       if (

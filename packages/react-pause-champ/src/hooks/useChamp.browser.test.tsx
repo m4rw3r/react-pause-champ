@@ -433,8 +433,10 @@ describe("useChamp()", () => {
 describe("useChamp() when hydrating", () => {
   it("React falls back to client-side init", () => {
     const consoleError = jest.fn();
+    const onError = jest.fn();
     // Silence and record errors
     console.error = consoleError;
+    window.addEventListener("error", onError);
 
     // const noSnapshotError = new Error("Server-snapshot is missing.");
     const container = document.createElement("div");
@@ -462,14 +464,34 @@ describe("useChamp() when hydrating", () => {
     );
     jest.runAllTimers();
 
-    expect(consoleError.mock.calls).toHaveLength(4);
-    // TODO: Remove this if we are not going to treat hydrating differently
-    /*expect(consoleError.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        detail: noSnapshotError,
-        type: "unhandled exception",
-      }),
-    );*/
+    if (reactVersion.startsWith("19.")) {
+      // React19: A different number of errors are printed now, and errors are
+      // thrown using window.dispatchEvent
+      expect(consoleError.mock.calls).toHaveLength(1);
+      expect(consoleError.mock.calls[0][0].toString()).toContain(
+        "Hydration failed because the server rendered HTML didn't match the client.",
+      );
+      expect(onError.mock.calls).toHaveLength(1);
+    } else if (reactVersion.startsWith("18.")) {
+      // React18: No throw in render or window.dispatchEvent
+      expect(consoleError.mock.calls).toHaveLength(4);
+      expect(consoleError.mock.calls[0][0].toString()).toContain(
+        "Warning: Text content did not match.",
+      );
+      expect(consoleError.mock.calls[1][0].toString()).toContain(
+        "Warning: An error occurred during hydration.",
+      );
+      expect(consoleError.mock.calls[2][0].toString()).toContain(
+        "Error: Text content does not match server-rendered HTML.",
+      );
+      expect(consoleError.mock.calls[3][0].toString()).toContain(
+        "Error: There was an error while hydrating.",
+      );
+      expect(onError.mock.calls).toHaveLength(0);
+    } else {
+      throw new Error(`Unknown react version ${reactVersion}`);
+    }
+
     expect(container.innerHTML).toEqual("<p>test-new</p>");
     expect(init.mock.calls).toHaveLength(1);
     expect(getEntry(store, "test-unsuspend")).toEqual({
@@ -481,8 +503,10 @@ describe("useChamp() when hydrating", () => {
 
   it("React falls back to client-side init if given id is missing snapshot", () => {
     const consoleError = jest.fn();
+    const onError = jest.fn();
     // Silence and record errors
     console.error = consoleError;
+    window.addEventListener("error", onError);
 
     // Just an empty snapshot
     store = fromSnapshot(new Map());
@@ -515,13 +539,31 @@ describe("useChamp() when hydrating", () => {
     );
     jest.runAllTimers();
 
-    expect(consoleError.mock.calls).toHaveLength(3);
-    /*expect(consoleError.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        detail: noSnapshotError,
-        type: "unhandled exception",
-      }),
-    );*/
+    if (reactVersion.startsWith("19.")) {
+      // React19: A different number of errors are printed now, and errors are
+      // thrown using window.dispatchEvent
+      expect(consoleError.mock.calls).toHaveLength(1);
+      expect(consoleError.mock.calls[0][0].toString()).toContain(
+        "Hydration failed because the server rendered HTML didn't match the client.",
+      );
+      expect(onError.mock.calls).toHaveLength(1);
+    } else if (reactVersion.startsWith("18.")) {
+      // React18: No throw in render or window.dispatchEvent
+      expect(consoleError.mock.calls).toHaveLength(3);
+      expect(consoleError.mock.calls[0][0].toString()).toContain(
+        "Warning: An error occurred during hydration.",
+      );
+      expect(consoleError.mock.calls[1][0].toString()).toContain(
+        "Error: Text content does not match server-rendered HTML.",
+      );
+      expect(consoleError.mock.calls[2][0].toString()).toContain(
+        "Error: There was an error while hydrating.",
+      );
+      expect(onError.mock.calls).toHaveLength(0);
+    } else {
+      throw new Error(`Unknown react version ${reactVersion}`);
+    }
+
     expect(container.innerHTML).toEqual("<p>test-new</p>");
     expect(init.mock.calls).toHaveLength(1);
     expect(getEntry(store, "test-unsuspend")).toEqual({

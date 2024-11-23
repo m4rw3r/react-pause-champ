@@ -520,8 +520,12 @@ describe("Component", () => {
         { event: "render", name: "1" },
         { event: "throw", name: "1" },
         // "Pre-warm" renders
-        // see: https://github.com/facebook/react/issues/29898#issuecomment-2477449973
-        // Render all the siblings once the first one has suspended and commited to DOM
+        //
+        // Render all the siblings once the first one has suspended and commited
+        // to DOM. Unfortunate that React does not keep the calculation from
+        // above as an optimization
+        //
+        // See: https://github.com/facebook/react/issues/29898#issuecomment-2477449973
         { event: "render", name: "1" },
         { event: "throw", name: "1" },
         { event: "render", name: "2" },

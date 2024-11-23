@@ -9,6 +9,7 @@ import {
   createElement,
   useState,
   useTransition,
+  version as reactVersion,
 } from "react";
 import { fireEvent, getByText, render } from "@testing-library/react";
 
@@ -347,13 +348,20 @@ describe("useChamp()", () => {
       ),
     ).toThrow(duplicateStateError);
 
-    expect(consoleError.mock.calls).toHaveLength(2);
-    expect(consoleError.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        detail: duplicateStateError,
-        type: "unhandled exception",
-      }),
-    );
+    if (reactVersion.startsWith("19.")) {
+      // React19: Console error is not actually printed anymore
+      expect(consoleError.mock.calls).toHaveLength(0);
+    } else if (reactVersion.startsWith("18.")) {
+      expect(consoleError.mock.calls).toHaveLength(2);
+      expect(consoleError.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          detail: duplicateStateError,
+          type: "unhandled exception",
+        }),
+      );
+    } else {
+      throw new Error(`Unknown react version ${reactVersion}`);
+    }
   });
 
   it("throws an error if the id is already used by a non-persistent state, async", async () => {
@@ -402,13 +410,22 @@ describe("useChamp()", () => {
     }
 
     expect(caughtError).toEqual(duplicateStateError);
-    expect(consoleError.mock.calls).toHaveLength(2);
-    expect(consoleError.mock.calls[0][0]).toEqual(
-      expect.objectContaining({
-        detail: duplicateStateError,
-        type: "unhandled exception",
-      }),
-    );
+
+    if (reactVersion.startsWith("19.")) {
+      // React19: Console error is not actually printed anymore
+      expect(consoleError.mock.calls).toHaveLength(0);
+    } else if (reactVersion.startsWith("18.")) {
+      expect(consoleError.mock.calls).toHaveLength(2);
+      expect(consoleError.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          detail: duplicateStateError,
+          type: "unhandled exception",
+        }),
+      );
+    } else {
+      throw new Error(`Unknown react version ${reactVersion}`);
+    }
+
     expect(container.innerHTML).toEqual("");
   });
 });

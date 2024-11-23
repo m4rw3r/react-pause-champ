@@ -188,8 +188,8 @@ export function ResumeScript({
  */
 export function createStateDataIterator(
   store: Store,
-  emitted?: Set<string> | undefined,
-  suspended?: Set<Promise<unknown>> | undefined,
+  emitted?: Set<string>,
+  suspended?: Set<Promise<unknown>>,
 ): EntryIterator {
   const items = new Map<string, Entry<unknown>>();
   const promises = [];

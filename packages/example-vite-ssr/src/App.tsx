@@ -94,17 +94,17 @@ export function App(): JSX.Element {
   const [isTransition, startTransition] = useTransition();
   const [n, setN] = useState(0);
 
-  console.log("isTransition:", isTransition);
+  console.log("isTransition:", isTransition, "counter:", n);
 
   return (
     <div style={isTransition ? { opacity: 0.5 } : {}}>
-      <button onClick={() => setN(n + 2)}>+1</button>
+      <button onClick={() => setN(n + 1)}>Replace state</button>
       <button onClick={() => startTransition(() => setN(n + 1))}>
-        +1 useTransition
+        Replace state with useTransition
       </button>
       <Suspense fallback={<Loader />}>
         <p>The test</p>
-        <Counter id={`counter-{n}`} startTransition={startTransition} />
+        <Counter id={`counter-${n}`} startTransition={startTransition} />
       </Suspense>
     </div>
   );

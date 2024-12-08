@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 
-import { createElement } from "react";
 import { fireEvent, getByText, render } from "@testing-library/react";
 
 import { Provider, createStore, useChamp, createSharedState } from "../index";

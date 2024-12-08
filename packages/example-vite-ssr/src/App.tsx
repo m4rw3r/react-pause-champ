@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 
-import { Suspense, createElement, useTransition, useState } from "react";
+import { Suspense, useTransition, useState } from "react";
 import { useChamp } from "@m4rw3r/react-pause-champ";
 
 /*

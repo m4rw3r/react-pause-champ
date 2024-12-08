@@ -6,7 +6,6 @@ import {
   StrictMode,
   Suspense,
   act,
-  createElement,
   useState,
   useTransition,
   version as reactVersion,

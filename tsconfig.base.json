@@ -5,9 +5,7 @@
     /* Language and Environment */
     "target": "es2021",
     "lib": ["dom", "es2021"],
-    "jsx": "react",
-    "jsxFactory": "createElement",
-    "jsxFragmentFactory": "Fragment",
+    "jsx": "react-jsx",
 
     /* Modules */
     "module": "esnext",

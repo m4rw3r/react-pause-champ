@@ -2,7 +2,6 @@
  * @jest-environment node
  */
 
-import { createElement } from "react";
 import { Provider, Resume, createStore } from "..";
 import { createEntry } from "../internal/entry";
 import {

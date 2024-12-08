@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { hydrateRoot } from "react-dom/client";
 import {
   Provider,

@@ -8,7 +8,6 @@ import {
   StrictMode,
   Suspense,
   act,
-  createElement,
   useEffect,
   useRef,
   version as reactVersion,

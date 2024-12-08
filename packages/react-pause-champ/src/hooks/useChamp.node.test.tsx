@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { Suspense, createElement } from "react";
+import { Suspense } from "react";
 import { Provider, useChamp, createStore } from "../index";
 import {
   REACT_STREAMING_SCRIPT,

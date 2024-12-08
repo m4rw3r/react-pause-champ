@@ -27,7 +27,7 @@ export type UseSharedState<T> = (
  *
  * @internal
  */
-export const SHARED_PREFIX = "P$";
+export const SHARED_PREFIX = "S$";
 
 /**
  * Creates a state which will be shared by all simultaneous consumers, contents

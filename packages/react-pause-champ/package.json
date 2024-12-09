@@ -8,7 +8,7 @@
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "prepublish": "pnpm -C ../.. dist",
+    "prepack": "pnpm -C ../.. dist",
     "build": "pnpm run \"/^build:.*/\"",
     "build:d.ts": "rollup -c",
     "build:js": "tsc --project tsconfig.build.json && ts-add-js-extension --dir=dist",

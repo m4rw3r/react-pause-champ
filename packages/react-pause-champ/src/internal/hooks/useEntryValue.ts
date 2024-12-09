@@ -30,16 +30,6 @@ export type SubscribeStrategy = (
 ) => Unregister;
 
 /**
- * @internal
- */
-type ReducerValue<T> = [Entry<T>, Store, string];
-
-/**
- * @internal
- */
-type Reducer<T> = (prev: ReducerValue<T>) => ReducerValue<T>;
-
-/**
  * Fetches or initializes an entry value.
  *
  * NOTE: Can throw, so must be run after other hooks.
@@ -77,10 +67,7 @@ export function useEntryValue<T>(
   //
   // initial state callback can only be executed during hydration, or initial
   // render of the component, it never happens during updates.
-  const [[savedEntry, savedStore, savedId], synchronize] = useReducer<
-    Reducer<T>,
-    unknown
-  >(
+  const [[savedEntry, savedStore, savedId], synchronize] = useReducer(
     (prev) => {
       // We might be in the process of swapping ids with a queued synchronize,
       // ensure we reinit in that case

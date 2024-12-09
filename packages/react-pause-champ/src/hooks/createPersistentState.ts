@@ -1,4 +1,4 @@
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import type { Store, Unregister } from "../internal/store";
 import type { Init, UpdateCallback } from "../types";
 import type { Guard } from "../internal/hooks/useEntryValue";
@@ -85,7 +85,7 @@ export function createPersistentState<T = never>(
 export function subscribePersistent(
   _store: Store,
   _id: string,
-  _guard: MutableRefObject<Guard | undefined>,
+  _guard: RefObject<Guard | undefined>,
   callback: Unregister,
 ): Unregister {
   return callback;

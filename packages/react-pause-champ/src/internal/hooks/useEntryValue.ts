@@ -1,4 +1,4 @@
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import type { Entry } from "../entry";
 import type { Init, InitFn } from "../../types";
 import type { Store, Unregister } from "../store";
@@ -25,7 +25,7 @@ export interface Guard {
 export type SubscribeStrategy = (
   store: Store,
   id: string,
-  guard: MutableRefObject<Guard | undefined>,
+  guard: RefObject<Guard | undefined>,
   callback: Unregister,
 ) => Unregister;
 
@@ -55,7 +55,7 @@ export function useEntryValue<T>(
   // Guard value for cleanup callback, useRef() will remain the same even in
   // <React.StrictMode/>, which means we can use this to ensure we only clean
   // up once the component really unmounts.
-  const guard = useRef<Guard>();
+  const guard = useRef<Guard | undefined>(undefined);
 
   // We have to track state-updates with useState/useReducer due to how React
   // is handling transitions with useSyncExternalStore.

@@ -1,4 +1,4 @@
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import type { Store, Unregister } from "../internal/store";
 import type { Init, UpdateCallback } from "../types";
 import type { Guard } from "../internal/hooks/useEntryValue";
@@ -55,7 +55,7 @@ export function createSharedState<T = never>(id: string): UseSharedState<T> {
 export function subscribeShared(
   store: Store,
   id: string,
-  _guard: MutableRefObject<Guard | undefined>,
+  _guard: RefObject<Guard | undefined>,
   unsubscribe: Unregister,
 ): Unregister {
   return (): void => {

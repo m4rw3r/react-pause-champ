@@ -1,4 +1,4 @@
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import type { Init, UpdateCallback } from "../types";
 import type { Store, Unregister } from "../internal/store";
 import type { Guard } from "../internal/hooks/useEntryValue";
@@ -93,7 +93,7 @@ function useCheckEntry(store: Store, id: string): void {
   //
   // NOTE: We cannot reuse the guard-ref here since that one is initialized
   // differently.
-  const cid = useRef<Record<never, never>>();
+  const cid = useRef<Record<never, never> | undefined>(undefined);
 
   // TODO: useEffect only runs on client, how do we check meta-info
   // on server-render?
@@ -129,7 +129,7 @@ function useCheckEntry(store: Store, id: string): void {
 export function subscribePrivate(
   store: Store,
   id: string,
-  guard: MutableRefObject<Guard | undefined>,
+  guard: RefObject<Guard | undefined>,
   unsubscribe: Unregister,
 ): Unregister {
   // Include the id so we can ensure we still drop when they do differ

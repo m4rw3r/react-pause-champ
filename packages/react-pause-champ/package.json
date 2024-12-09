@@ -12,6 +12,7 @@
     "build": "pnpm run \"/^build:.*/\"",
     "build:d.ts": "rollup -c",
     "build:js": "tsc --project tsconfig.build.json && ts-add-js-extension --dir=dist",
+    "build:CHANGELOG": "cp ../../CHANGELOG.md CHANGELOG.md",
     "build:README": "cp ../../README.md README.md",
     "check": "tsc --noEmit",
     "clean": "rm -rf coverage dist README.md",
@@ -40,6 +41,7 @@
   "files": [
     "dist/*",
     "internal/*",
+    "CHANGELOG.md",
     "README.md"
   ],
   "exports": {

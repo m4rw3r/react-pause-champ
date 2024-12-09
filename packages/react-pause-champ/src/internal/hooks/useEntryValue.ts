@@ -86,7 +86,7 @@ export function useEntryValue<T>(
       // We might be restoring from a server snapshot
       restoreEntryFromSnapshot(store, id, () =>
         getOrInitState(store, id, initialState),
-      ) as Entry<T>,
+      ),
       store,
       id,
     ],

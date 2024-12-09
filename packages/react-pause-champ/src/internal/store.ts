@@ -211,7 +211,7 @@ export function restoreEntryFromSnapshot<T>(
   store: Store,
   id: string,
   fallback: () => Entry<T>,
-): Entry<unknown> {
+): Entry<T> {
   // This callback should only be triggered for hydrating components,
   // which means they MUST have a server-snapshot:
   const value = store.snapshot?.get(id);
@@ -230,7 +230,7 @@ export function restoreEntryFromSnapshot<T>(
 
   // We do not trigger any listeners here, since listeners are installed after
   // restoration is done
-  return value;
+  return value as Entry<T>;
 }
 
 /**

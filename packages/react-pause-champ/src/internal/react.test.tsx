@@ -23,6 +23,17 @@ interface ComponentEvent {
   ref: ComponentRef;
 }
 
+// Make sure we are actually testing the expected version of react, if we use
+// the environment variables to remap in jest.config.ts:
+if (
+  process.env.REACT_VERSION &&
+  !reactVersion.startsWith(process.env.REACT_VERSION + ".")
+) {
+  throw new Error(
+    `Expected react version ${process.env.REACT_VERSION}, got ${reactVersion}`,
+  );
+}
+
 describe("useRef({})", () => {
   it("should be identical over multiple renders", () => {
     let i = 0;
@@ -50,7 +61,7 @@ describe("useRef({})", () => {
   });
 
   if (reactVersion.startsWith("18.")) {
-    it("should be identical over multiple renders in StrictMode, with the exception of the initial render", () => {
+    it("React 18: should be identical over multiple renders in StrictMode, with the exception of the initial render", () => {
       let i = 0;
       const events: ComponentEvent[] = [];
 
@@ -162,7 +173,7 @@ describe("useRef({})", () => {
       expect(events[2]!.ref).toBe(events[3]!.ref);
     });
   } else if (reactVersion.startsWith("19.")) {
-    it("should be identical over multiple renders in StrictMode, with the exception of the initial render", () => {
+    it("React 19: should be identical over multiple renders in StrictMode, with the exception of the initial render", () => {
       let i = 0;
       const events: ComponentEvent[] = [];
 
@@ -337,7 +348,7 @@ describe("Component", () => {
 
   if (reactVersion.startsWith("18.")) {
     // React 18 renders in parallel
-    it("Should render in parallel without Suspense", async () => {
+    it("React 18: Should render in parallel without Suspense", async () => {
       events = [];
       const value1 = makePromiseObject();
       const value2 = makePromiseObject();
@@ -443,7 +454,7 @@ describe("Component", () => {
       ]);
     });
   } else if (reactVersion.startsWith("19.")) {
-    it("Should render in parallel without Suspense", async () => {
+    it("React 19: Should render in parallel without Suspense", async () => {
       events = [];
       const value1 = makePromiseObject();
       const value2 = makePromiseObject();

@@ -59,7 +59,7 @@
     "pnpm": ">=3"
   },
   "peerDependencies": {
-    "react": "^18|^19"
+    "react": "^18 || ^19"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

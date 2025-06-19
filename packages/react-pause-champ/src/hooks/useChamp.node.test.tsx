@@ -142,17 +142,20 @@ describe("useChamp()", () => {
     };
     const store = createStore();
     const stream = renderToStream(
-      <Provider store={store}>
-        <Suspense fallback={"foobar"}>
-          <MyComponent />
-        </Suspense>
-      </Provider>,
+      // The <div> is required to get the Suspense boundary to render the fallback
+      <div>
+        <Provider store={store}>
+          <Suspense fallback={"foobar"}>
+            <MyComponent />
+          </Suspense>
+        </Provider>
+      </div>,
     );
 
     expect(stream.buffer).toHaveLength(0);
     // Note: The syntax for placeholders can be changed at some point by React
     await expect(stream.chunk()).resolves.toEqual(
-      `<!--$?--><template id="B:0"></template>foobar<!--/$-->`,
+      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>`,
     );
     expect(stream.buffer).toHaveLength(1);
     expect(stream.errors).toEqual([]);
@@ -161,7 +164,7 @@ describe("useChamp()", () => {
 
     expect(stream.buffer).toHaveLength(1);
     await expect(stream).resolves.toEqual(
-      `<!--$?--><template id="B:0"></template>foobar<!--/$--><div hidden id="S:0"><p>asdf</p></div>${REACT_STREAMING_SCRIPT}`,
+      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div><div hidden id="S:0"><p>asdf</p></div>${REACT_STREAMING_SCRIPT}`,
     );
     expect(stream.buffer).toHaveLength(2);
     expect(stream.errors).toEqual([]);
@@ -180,18 +183,20 @@ describe("useChamp()", () => {
     };
     const store = createStore();
     const stream = renderToStream(
-      <Provider store={store}>
-        <Suspense fallback={"foobar"}>
-          <MyComponent />
-        </Suspense>
-      </Provider>,
+      <div>
+        <Provider store={store}>
+          <Suspense fallback={"foobar"}>
+            <MyComponent />
+          </Suspense>
+        </Provider>
+      </div>,
     );
 
     expect(stream.buffer).toHaveLength(0);
     expect(stream.errors).toEqual([]);
 
     await expect(stream.chunk()).resolves.toEqual(
-      `<!--$?--><template id="B:0"></template>foobar<!--/$-->`,
+      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>`,
     );
 
     rejectWaiting!(new Error("The error from the test"));

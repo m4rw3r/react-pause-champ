@@ -12,17 +12,17 @@
   },
   "dependencies": {
     "@m4rw3r/react-pause-champ": "link:../react-pause-champ",
-    "express": "^4.21.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "express": "^5.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/react": "^19.0.1",
-    "@types/react-dom": "^19.0.1",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@types/express": "^5.0.3",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
     "vavite": "^5.1.0",
-    "vite": "^6.0.3",
+    "vite": "^6.3.5",
     "vite-tsconfig-paths": "^5.1.4"
   }
 }

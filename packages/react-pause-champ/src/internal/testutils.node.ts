@@ -81,13 +81,11 @@ export function renderToStream(component: ReactNode): StreamParts {
   promise.errors = errors;
 
   promise.chunk = function (): Promise<string> {
-    if (!nextChunk) {
-      nextChunk = new Promise((resolve) => {
-        // Chunks cannot be rejected, React instead propagates the error to the
-        // client if the shell is already rendered
-        resolveNext = resolve;
-      });
-    }
+    nextChunk ??= new Promise((resolve) => {
+      // Chunks cannot be rejected, React instead propagates the error to the
+      // client if the shell is already rendered
+      resolveNext = resolve;
+    });
 
     return nextChunk;
   };

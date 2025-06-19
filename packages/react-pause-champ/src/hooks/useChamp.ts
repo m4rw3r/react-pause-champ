@@ -103,10 +103,8 @@ function useCheckEntry(store: Store, id: string): void {
   // This is never run when we suspend, so we do not have the issue
   // by using useEffect.
   useEffect(() => {
-    if (!cid.current) {
-      // Unique ID when we use strict equality
-      cid.current = {};
-    }
+    // Unique ID when we use strict equality
+    cid.current ??= {};
 
     const meta = store.meta.get(id);
 

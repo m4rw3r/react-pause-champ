@@ -1,7 +1,8 @@
-import type { JestConfigWithTsJest } from "ts-jest";
-import defaultConfig from "../../jest.config";
+import defaultConfig from "../../jest.config.js";
 
-const moduleNameMapper: Record<string, string> = {};
+/* global process */
+
+const moduleNameMapper = {};
 
 if (process.env.REACT_VERSION) {
   moduleNameMapper["^react((\\/.*)?)$"] = `react${process.env.REACT_VERSION}$1`;
@@ -9,7 +10,7 @@ if (process.env.REACT_VERSION) {
     `react${process.env.REACT_VERSION}-dom$1`;
 }
 
-const jestConfig: JestConfigWithTsJest = {
+const jestConfig = {
   ...defaultConfig,
   testEnvironment: "jsdom",
   moduleNameMapper,

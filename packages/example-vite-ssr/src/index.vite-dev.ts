@@ -15,7 +15,7 @@ function createViteDevHtmlTransform(path: string) {
   let transformed = false;
 
   return new Transform({
-    transform(chunk: string, _encoding: string, callback: Callback) {
+    transform(chunk: string | Buffer, _encoding: string, callback: Callback) {
       if (!transformed) {
         // The first chunk should contain the full <head>
         transformed = true;
@@ -35,7 +35,7 @@ function createViteDevHtmlTransform(path: string) {
           (error: Error) => callback(error, null),
         );
       } else {
-        callback(null, chunk);
+        callback(null, chunk.toString());
       }
     },
   });

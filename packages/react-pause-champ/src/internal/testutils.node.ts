@@ -39,7 +39,7 @@ export function renderToStream(component: ReactNode): StreamParts {
     const stream = new Writable();
 
     stream._write = function (
-      chunk: string,
+      chunk: string | Buffer,
       _encoding: string,
       callback: Callback,
     ) {

@@ -29,6 +29,10 @@ export type SubscribeStrategy = (
   callback: Unregister,
 ) => Unregister;
 
+// Disable the refs-rule, we are setting the value while rendering to avoid
+// multiple redraws due to differing output and to ensure we are avoiding
+// tearing.
+/* eslint-disable react-hooks/refs */
 /**
  * Fetches or initializes an entry value.
  *

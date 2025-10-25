@@ -18,6 +18,7 @@
     "clean": "rm -rf coverage dist CHANGELOG.md README.md",
     "test": "pnpm run --sequential \"/^test:.*/\"",
     "test:react18": "REACT_VERSION=18 jest",
+    "test:react19.1": "REACT_VERSION=19.1 jest",
     "test:react19": "REACT_VERSION=19 jest",
     "watch": "jest --watch"
   },
@@ -71,6 +72,8 @@
     "react-dom": "^19.2.0",
     "react18": "npm:react@^18.0.0",
     "react18-dom": "npm:react-dom@^18.0.0",
+    "react19.1": "npm:react@19.1.1",
+    "react19.1-dom": "npm:react-dom@19.1.1",
     "react19": "npm:react@19.2.0",
     "react19-dom": "npm:react-dom@19.2.0"
   }

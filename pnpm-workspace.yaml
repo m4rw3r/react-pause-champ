@@ -1,2 +1,7 @@
 packages:
   - "packages/*"
+
+overrides:
+  # Override versions for supported react version aliases
+  react18: "npm:react@^18.0.0"
+  react18-dom: "npm:react-dom@^18.0.0"

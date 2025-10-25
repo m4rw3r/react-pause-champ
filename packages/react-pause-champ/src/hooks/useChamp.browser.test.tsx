@@ -71,6 +71,8 @@ function renderHook<P extends unknown[], T>(
   const error: Ref<unknown> = { current: undefined, all: [] };
   const result: Ref<unknown> = { current: undefined, all: [] };
 
+  // We are not using actual react refs here
+  /* eslint-disable react-hooks/immutability */
   function TestComponent({ args }: { args: P }) {
     // We have to catch errors here, otherwise React wants to render our component
     // twice to make sure the error is "permanent", and react will output a ton of

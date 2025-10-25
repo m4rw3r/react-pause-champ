@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Provider, useChamp, createStore } from "../index";
 import {
   REACT_STREAMING_SCRIPT,
+  REACT_STREAMING_SUFFIX,
   renderToStream,
 } from "../internal/testutils.node";
 
@@ -155,7 +156,7 @@ describe("useChamp()", () => {
     expect(stream.buffer).toHaveLength(0);
     // Note: The syntax for placeholders can be changed at some point by React
     await expect(stream.chunk()).resolves.toEqual(
-      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>`,
+      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>${REACT_STREAMING_SUFFIX}`,
     );
     expect(stream.buffer).toHaveLength(1);
     expect(stream.errors).toEqual([]);
@@ -164,7 +165,7 @@ describe("useChamp()", () => {
 
     expect(stream.buffer).toHaveLength(1);
     await expect(stream).resolves.toEqual(
-      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div><div hidden id="S:0"><p>asdf</p></div>${REACT_STREAMING_SCRIPT}`,
+      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>${REACT_STREAMING_SUFFIX}<div hidden id="S:0"><p>asdf</p></div>${REACT_STREAMING_SCRIPT}`,
     );
     expect(stream.buffer).toHaveLength(2);
     expect(stream.errors).toEqual([]);
@@ -196,7 +197,7 @@ describe("useChamp()", () => {
     expect(stream.errors).toEqual([]);
 
     await expect(stream.chunk()).resolves.toEqual(
-      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>`,
+      `<div><!--$?--><template id="B:0"></template>foobar<!--/$--></div>${REACT_STREAMING_SUFFIX}`,
     );
 
     rejectWaiting!(new Error("The error from the test"));

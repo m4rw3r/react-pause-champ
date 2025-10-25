@@ -6,6 +6,7 @@ import { Provider, Resume, createStore } from "..";
 import { createEntry } from "../internal/entry";
 import {
   REACT_STREAMING_SCRIPT,
+  REACT_STREAMING_SUFFIX,
   renderToStream,
 } from "../internal/testutils.node";
 
@@ -95,7 +96,7 @@ describe("<Resume/>", () => {
     );
 
     await expect(stream.chunk()).resolves.toEqual(
-      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>`,
+      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>${REACT_STREAMING_SUFFIX}`,
     );
 
     expect(stream.errors).toEqual([]);
@@ -103,7 +104,7 @@ describe("<Resume/>", () => {
     resolveWaiting!("foobar");
 
     await expect(stream).resolves.toEqual(
-      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"value","value":"foobar"})</script><!--$--><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
+      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>${REACT_STREAMING_SUFFIX}<div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"value","value":"foobar"})</script><!--$--><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
     );
 
     expect(stream.errors).toEqual([]);
@@ -126,7 +127,7 @@ describe("<Resume/>", () => {
     );
 
     await expect(stream.chunk()).resolves.toEqual(
-      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>`,
+      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>${REACT_STREAMING_SUFFIX}`,
     );
 
     expect(stream.errors).toEqual([]);
@@ -134,7 +135,7 @@ describe("<Resume/>", () => {
     rejectWaiting!(new Error("asdf"));
 
     await expect(stream).resolves.toEqual(
-      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div><div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"error","value":{}})</script><!--$--><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
+      `<div><script async="">window.snapshot=new Map();window.snapshot.set("test",{"kind":"value","value":"the value"});window.snapshot.set("another",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>${REACT_STREAMING_SUFFIX}<div hidden id="S:0"><script async="">window.snapshot.set("another",{"kind":"error","value":{}})</script><!--$--><!--/$--></div>${REACT_STREAMING_SCRIPT}`,
     );
 
     // The error is not thrown in a component since we are actually not rendering the component with the error
@@ -163,7 +164,7 @@ describe("<Resume/>", () => {
     );
 
     await expect(stream.chunk()).resolves.toEqual(
-      `<div><script async="">window.snapshot=new Map();window.snapshot.set("wait1",{"kind":"server-suspended","value":undefined});window.snapshot.set("wait2",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>`,
+      `<div><script async="">window.snapshot=new Map();window.snapshot.set("wait1",{"kind":"server-suspended","value":undefined});window.snapshot.set("wait2",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>${REACT_STREAMING_SUFFIX}`,
     );
 
     expect(stream.errors).toEqual([]);
@@ -190,7 +191,7 @@ describe("<Resume/>", () => {
       `<div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`,
     );
     await expect(stream).resolves.toEqual(
-      `<div><script async="">window.snapshot=new Map();window.snapshot.set("wait1",{"kind":"server-suspended","value":undefined});window.snapshot.set("wait2",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div><div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:1"></template><!--/$--></div>${REACT_STREAMING_SCRIPT}<div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`,
+      `<div><script async="">window.snapshot=new Map();window.snapshot.set("wait1",{"kind":"server-suspended","value":undefined});window.snapshot.set("wait2",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:0"></template><!--/$--></div>${REACT_STREAMING_SUFFIX}<div hidden id="S:0"><script async="">window.snapshot.set("wait1",{"kind":"value","value":"waiting 1 data"});window.snapshot.set("baz",{"kind":"value","value":"the value"});window.snapshot.set("wait3",{"kind":"server-suspended","value":undefined})</script><!--$?--><template id="B:1"></template><!--/$--></div>${REACT_STREAMING_SCRIPT}<div hidden id="S:1"><script async="">window.snapshot.set("wait2",{"kind":"value","value":"should"});window.snapshot.set("wait3",{"kind":"value","value":"be simultaneous"})</script><!--$--><!--/$--></div><script>$RC("B:1","S:1")</script>`,
     );
 
     expect(stream.errors).toEqual([]);

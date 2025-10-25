@@ -468,8 +468,8 @@ describe("useChamp() when hydrating", () => {
       // React19: A different number of errors are printed now, and errors are
       // thrown using window.dispatchEvent
       expect(consoleError.mock.calls).toHaveLength(1);
-      expect(String(consoleError.mock.calls[0][0])).toContain(
-        "Hydration failed because the server rendered HTML didn't match the client.",
+      expect(String(consoleError.mock.calls[0][0])).toMatch(
+        /Hydration failed because the server rendered (HTML|text) didn't match the client./,
       );
       expect(onError.mock.calls).toHaveLength(1);
     } else if (reactVersion.startsWith("18.")) {
@@ -543,8 +543,8 @@ describe("useChamp() when hydrating", () => {
       // React19: A different number of errors are printed now, and errors are
       // thrown using window.dispatchEvent
       expect(consoleError.mock.calls).toHaveLength(1);
-      expect(String(consoleError.mock.calls[0][0])).toContain(
-        "Hydration failed because the server rendered HTML didn't match the client.",
+      expect(String(consoleError.mock.calls[0][0])).toMatch(
+        /Hydration failed because the server rendered (HTML|text) didn't match the client./,
       );
       expect(onError.mock.calls).toHaveLength(1);
     } else if (reactVersion.startsWith("18.")) {

@@ -27,6 +27,7 @@ import {
   listenerCount,
   setEntry,
 } from "../internal/store";
+import { TrackedPromise } from "../internal/tracked-promise";
 
 interface Ref<T> {
   // We skip undefined here, even though it can be, since it is annoying for test
@@ -181,7 +182,7 @@ describe("useChamp()", () => {
   it("throws async errors", async () => {
     // This does not throw when expected since we need to have useEffect
     let rejectWaiting: (error: Error) => void;
-    const waiting = new Promise<string>((_, reject) => {
+    const waiting = new TrackedPromise<string>((_, reject) => {
       rejectWaiting = reject;
     });
     const rejection = new Error("throws async error test");
@@ -370,7 +371,7 @@ describe("useChamp()", () => {
 
     let caughtError;
     let resolve: (str: string) => void;
-    const theValue = new Promise<string>((r) => (resolve = r));
+    const theValue = new TrackedPromise<string>((r) => (resolve = r));
     const duplicateStateError = new Error(
       "State 'the-duplicate-id' is already mounted in another component.",
     );
@@ -791,7 +792,7 @@ describe("useChamp().update", () => {
 
   it("triggers re-render with async-updated values", async () => {
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve) => {
+    const waiting = new TrackedPromise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -824,7 +825,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     // We have to wait for the promise to complete
@@ -860,7 +861,7 @@ describe("useChamp().update", () => {
     console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve) => {
+    const waiting = new TrackedPromise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -897,7 +898,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     unmount();
@@ -935,7 +936,7 @@ describe("useChamp().update", () => {
     console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve) => {
+    const waiting = new TrackedPromise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -972,7 +973,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     unmount();
@@ -1033,10 +1034,10 @@ describe("useChamp().update", () => {
 
     let resolveWaiting: (obj: { name: string }) => void;
     let resolveWaiting2: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve) => {
+    const waiting = new TrackedPromise((resolve) => {
       resolveWaiting = resolve;
     });
-    const waiting2 = new Promise<{ name: string }>((resolve) => {
+    const waiting2 = new TrackedPromise<{ name: string }>((resolve) => {
       resolveWaiting2 = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -1073,7 +1074,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     unmount();
@@ -1100,7 +1101,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
-      value: waiting2,
+      value: expect.promiseDerivedFrom(waiting2),
     });
 
     // We have to wait for the promise to complete
@@ -1121,7 +1122,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-unmount")).toEqual({
       kind: "suspended",
-      value: waiting2,
+      value: expect.promiseDerivedFrom(waiting2),
     });
 
     // We have to wait for the promise to complete
@@ -1153,7 +1154,7 @@ describe("useChamp().update", () => {
     console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve) => {
+    const waiting = new TrackedPromise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -1190,7 +1191,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async-old")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     rerender("test-update-async-new", dataObj);
@@ -1273,7 +1274,7 @@ describe("useChamp().update", () => {
   it("throws async errors", async () => {
     // This does not throw when expected since we need to have useEffect
     let rejectWaiting: (error: Error) => void;
-    const waiting = new Promise<string>((_, reject) => {
+    const waiting = new TrackedPromise<string>((_, reject) => {
       rejectWaiting = reject;
     });
     const rejection = new Error("throws async error test");
@@ -1305,7 +1306,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "update-async-throw-test")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     // We have to wait for the promise to complete
@@ -1429,7 +1430,7 @@ describe("useChamp().update", () => {
   it("fails with a predictable exception if called during an asynchronous update", async () => {
     let caughtError;
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise((resolve) => {
+    const waiting = new TrackedPromise((resolve) => {
       resolveWaiting = resolve;
     });
     const dataObj = { name: "data-obj" };
@@ -1462,7 +1463,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     try {
@@ -1482,7 +1483,7 @@ describe("useChamp().update", () => {
     expect(container.innerHTML).toMatch(SUSPENDED_TEST_COMPONENT_HTML);
     expect(getEntry(store, "test-update-async")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
 
     // We have to wait for the promise to complete
@@ -1520,7 +1521,7 @@ describe("With useTransition", () => {
     //console.warn = consoleWarn;
 
     let resolveWaiting: (obj: { name: string }) => void;
-    const waiting = new Promise<{ name: string }>((resolve) => {
+    const waiting = new TrackedPromise<{ name: string }>((resolve) => {
       resolveWaiting = resolve;
     });
     const newData = { name: "new-object" };
@@ -1572,7 +1573,7 @@ describe("With useTransition", () => {
     );
     expect(getEntry(store, "test")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
     expect(consoleError.mock.calls).toEqual([]);
     expect(consoleWarn.mock.calls).toEqual([]);
@@ -1585,7 +1586,7 @@ describe("With useTransition", () => {
       );
       expect(getEntry(store, "test")).toEqual({
         kind: "suspended",
-        value: waiting,
+        value: expect.promiseDerivedFrom(waiting),
       });
       expect(consoleError.mock.calls).toEqual([]);
       expect(consoleWarn.mock.calls).toEqual([]);
@@ -1613,7 +1614,7 @@ describe("With useTransition", () => {
 
     let resolveWaiting: (obj: { name: string }) => void;
     const init = { name: "init" };
-    const waiting = new Promise<{ name: string }>((resolve) => {
+    const waiting = new TrackedPromise<{ name: string }>((resolve) => {
       resolveWaiting = resolve;
     });
     const newData = { name: "new-object" };
@@ -1676,7 +1677,7 @@ describe("With useTransition", () => {
     );
     expect(getEntry(store, "test")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
     expect(listenerCount(store, "test")).toEqual(1);
     expect(consoleError.mock.calls).toEqual([]);
@@ -1689,7 +1690,7 @@ describe("With useTransition", () => {
     );
     expect(getEntry(store, "test")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
     expect(listenerCount(store, "test")).toEqual(1);
     expect(consoleError.mock.calls).toEqual([]);
@@ -1705,7 +1706,7 @@ describe("With useTransition", () => {
       );
       expect(getEntry(store, "test")).toEqual({
         kind: "suspended",
-        value: waiting,
+        value: expect.promiseDerivedFrom(waiting),
       });
       expect(listenerCount(store, "test")).toEqual(1);
       expect(consoleError.mock.calls).toEqual([]);
@@ -1735,7 +1736,7 @@ describe("With useTransition", () => {
 
     let resolveWaiting: (obj: { name: string }) => void;
     const init = { name: "init" };
-    const waiting = new Promise<{ name: string }>((resolve) => {
+    const waiting = new TrackedPromise<{ name: string }>((resolve) => {
       resolveWaiting = resolve;
     });
     const newData = { name: "new-object" };
@@ -1797,7 +1798,7 @@ describe("With useTransition", () => {
     });
     expect(getEntry(store, "test:waiting")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
     expect(listenerCount(store, "test:init")).toEqual(1);
     expect(consoleError.mock.calls).toEqual([]);
@@ -1816,7 +1817,7 @@ describe("With useTransition", () => {
     });
     expect(getEntry(store, "test:waiting")).toEqual({
       kind: "suspended",
-      value: waiting,
+      value: expect.promiseDerivedFrom(waiting),
     });
     expect(listenerCount(store, "test:init")).toEqual(1);
     expect(listenerCount(store, "test:waiting")).toEqual(0);
